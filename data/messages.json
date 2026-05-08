@@ -1,0 +1,175 @@
+{
+  "messages": [
+    {
+      "id": 20,
+      "nickname": "800分",
+      "content": "就是为了截图",
+      "avatar": "https://api.dicebear.com/7.x/adventurer/svg?seed=800分1778063759064",
+      "time": "2026-05-06 18:35",
+      "image": "/uploads/e5b5d43a-52ce-4b09-a10a-fea1ac19425e.jpg",
+      "createdAt": "2026-05-06T10:35:59.064Z"
+    },
+    {
+      "id": 19,
+      "nickname": "700分",
+      "content": "测试二次确认",
+      "avatar": "https://api.dicebear.com/7.x/adventurer/svg?seed=700分1778063717200",
+      "time": "2026-05-06 18:35",
+      "image": "/uploads/509fd9f0-7e58-4837-bd30-1c06285de54a.webp",
+      "createdAt": "2026-05-06T10:35:17.200Z"
+    },
+    {
+      "id": 18,
+      "nickname": "600分",
+      "content": "OK 这次对了",
+      "avatar": "https://api.dicebear.com/7.x/adventurer/svg?seed=600分1778062847720",
+      "time": "2026-05-06 18:20",
+      "image": "/uploads/50dca7b5-2731-4212-b6a6-789b1c7a14af.jpg",
+      "createdAt": "2026-05-06T10:20:47.720Z"
+    },
+    {
+      "id": 17,
+      "nickname": "600分",
+      "content": "看看时间轴",
+      "avatar": "https://api.dicebear.com/7.x/adventurer/svg?seed=600分1778062621479",
+      "time": "2026-05-06 18:17",
+      "image": null,
+      "createdAt": "2026-05-06T10:17:01.479Z"
+    },
+    {
+      "id": 16,
+      "nickname": "500分",
+      "content": "宝宝！！！！！！！！！！！！！！！！",
+      "avatar": "https://api.dicebear.com/7.x/adventurer/svg?seed=500分1778062190703",
+      "time": "2026-05-06 18:09",
+      "image": null,
+      "createdAt": "2026-05-06T10:09:50.703Z"
+    },
+    {
+      "id": 15,
+      "nickname": "400分",
+      "content": "测试",
+      "avatar": "https://api.dicebear.com/7.x/adventurer/svg?seed=400分1778060077312",
+      "time": "2026-05-06 17:34",
+      "image": null,
+      "createdAt": "2026-05-06T09:34:37.312Z"
+    },
+    {
+      "id": 14,
+      "nickname": "300分！！！",
+      "content": "宋劳斯我超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你超爱你",
+      "avatar": "https://api.dicebear.com/7.x/adventurer/svg?seed=300分！！！1778057520617",
+      "time": "2026-05-06 16:52",
+      "image": "/uploads/f09e4280-d725-4efa-b209-260a1bd8f7f4.jpg",
+      "createdAt": "2026-05-06T16:52:00.000Z"
+    },
+    {
+      "id": 12,
+      "nickname": "图片测试用户",
+      "content": "这是一条带有图片的测试留言，看看图片能否正常显示！",
+      "avatar": "https://api.dicebear.com/7.x/adventurer/svg?seed=ImageTest",
+      "time": "2026-05-06 16:00",
+      "image": "/uploads/test-image.jpg",
+      "createdAt": "2026-05-06T16:00:00.000Z"
+    },
+    {
+      "id": 11,
+      "nickname": "200分！",
+      "content": "么么",
+      "avatar": "https://api.dicebear.com/7.x/adventurer/svg?seed=200分！1778053449975",
+      "time": "2026-05-06 15:44",
+      "image": null,
+      "createdAt": "2026-05-06T15:44:00.000Z"
+    },
+    {
+      "id": 10,
+      "nickname": "剁椒鱼头",
+      "content": "爱你爱你爱你",
+      "avatar": "https://api.dicebear.com/7.x/adventurer/svg?seed=剁椒鱼头1778052750073",
+      "time": "2026-05-06 15:32",
+      "image": null,
+      "createdAt": "2026-05-06T15:32:00.000Z"
+    },
+    {
+      "id": 9,
+      "nickname": "剁椒鱼头",
+      "content": "爱你爱你 亲亲",
+      "avatar": "https://api.dicebear.com/7.x/adventurer/svg?seed=剁椒鱼头1778052654576",
+      "time": "2026-05-06 15:30",
+      "image": null,
+      "createdAt": "2026-05-06T15:30:00.000Z"
+    },
+    {
+      "id": 1,
+      "nickname": "小鱼儿",
+      "content": "祝你生日快乐！愿你的每一天都像海洋一样宽广美丽，充满无限可能。",
+      "avatar": "https://api.dicebear.com/7.x/adventurer/svg?seed=Felix",
+      "time": "2024-08-13 09:30",
+      "image": null,
+      "createdAt": "2024-08-13T09:30:00.000Z"
+    },
+    {
+      "id": 2,
+      "nickname": "海星少女",
+      "content": "生日快乐！希望你的未来像星空一样璀璨，像大海一样深邃。",
+      "avatar": "https://api.dicebear.com/7.x/adventurer/svg?seed=Luna",
+      "time": "2024-08-13 10:15",
+      "image": null,
+      "createdAt": "2024-08-13T10:15:00.000Z"
+    },
+    {
+      "id": 3,
+      "nickname": "蓝鲸少年",
+      "content": "愿你的生日充满欢笑和祝福，像海洋的波涛一样绵延不绝。",
+      "avatar": "https://api.dicebear.com/7.x/adventurer/svg?seed=Whale",
+      "time": "2024-08-13 11:00",
+      "image": null,
+      "createdAt": "2024-08-13T11:00:00.000Z"
+    },
+    {
+      "id": 4,
+      "nickname": "珊瑚公主",
+      "content": "在这特别的日子里，送上最真挚的祝福！愿所有美好都如期而至。",
+      "avatar": "https://api.dicebear.com/7.x/adventurer/svg?seed=Coral",
+      "time": "2024-08-13 12:30",
+      "image": null,
+      "createdAt": "2024-08-13T12:30:00.000Z"
+    },
+    {
+      "id": 5,
+      "nickname": "贝壳收藏家",
+      "content": "每一个贝壳都藏着一个祝福，我把最珍贵的那颗送给你。",
+      "avatar": "https://api.dicebear.com/7.x/adventurer/svg?seed=Shell",
+      "time": "2024-08-13 13:45",
+      "image": null,
+      "createdAt": "2024-08-13T13:45:00.000Z"
+    },
+    {
+      "id": 6,
+      "nickname": "海豚精灵",
+      "content": "生日快乐！愿快乐像海豚一样跳跃，幸福像海浪一样涌来。",
+      "avatar": "https://api.dicebear.com/7.x/adventurer/svg?seed=Dolphin",
+      "time": "2024-08-13 14:20",
+      "image": null,
+      "createdAt": "2024-08-13T14:20:00.000Z"
+    },
+    {
+      "id": 7,
+      "nickname": "月光海岸",
+      "content": "月光洒在海面上，祝福飘到你身旁。生日快乐，永远幸福。",
+      "avatar": "https://api.dicebear.com/7.x/adventurer/svg?seed=Moon",
+      "time": "2024-08-13 15:00",
+      "image": null,
+      "createdAt": "2024-08-13T15:00:00.000Z"
+    },
+    {
+      "id": 8,
+      "nickname": "潮汐守望者",
+      "content": "潮起潮落，岁月流转，愿你的每个生日都比上一个更精彩。",
+      "avatar": "https://api.dicebear.com/7.x/adventurer/svg?seed=Tide",
+      "time": "2024-08-13 16:30",
+      "image": null,
+      "createdAt": "2024-08-13T16:30:00.000Z"
+    }
+  ]
+}
