@@ -102,9 +102,23 @@ export default function MessagePage() {
       return;
     }
 
-    // Check file type
-    const ext = path.extname(file.name).toLowerCase();
-    if (!ALLOWED_EXTENSIONS.includes(ext)) {
+    // 获取文件真实 MIME 类型
+    const realMimeType = file.type;
+    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    
+    // 不支持的 HEIF/HEIC 格式检测
+    const unsupportedFormats = ['image/heic', 'image/heif', 'image/avif', 'image/hif', 'image/heics', 'image/heif-sequence'];
+    const isUnsupported = unsupportedFormats.includes(realMimeType) || 
+                          (!realMimeType && (file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif')));
+    
+    if (isUnsupported) {
+      setError('当前图片格式暂不支持，请关闭手机"高效图片/HEIF"后重新上传，或转换为 JPG 后上传');
+      target.value = '';
+      return;
+    }
+    
+    // 检查真实 MIME 类型
+    if (!allowedMimeTypes.includes(realMimeType)) {
       setError('图片格式不支持，请上传 jpg、jpeg、png 或 webp 格式');
       target.value = '';
       return;
@@ -117,7 +131,19 @@ export default function MessagePage() {
       return;
     }
 
-    setSelectedFile(file);
+    // 根据真实 MIME 类型生成正确的扩展名
+    let correctExt = '';
+    if (realMimeType === 'image/jpeg') correctExt = '.jpg';
+    else if (realMimeType === 'image/png') correctExt = '.png';
+    else if (realMimeType === 'image/webp') correctExt = '.webp';
+    
+    const baseName = file.name.replace(/\.[^/.]+$/, '');
+    const correctFileName = correctExt ? `${baseName}${correctExt}` : file.name;
+    
+    // 创建新文件对象，使用正确的扩展名
+    const renamedFile = new File([file], correctFileName, { type: realMimeType });
+    
+    setSelectedFile(renamedFile);
     setError('');
     
     const reader = new FileReader();

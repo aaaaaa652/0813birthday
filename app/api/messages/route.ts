@@ -115,32 +115,55 @@ export async function POST(request: Request) {
     let imagePath: string | null = null;
     
     if (imageFile && imageFile.size > 0 && imageFile.name) {
-      console.log('Processing image upload...');
-      const ext = path.extname(imageFile.name);
-      console.log('File extension:', ext);
+      const originalFileName = imageFile.name;
+      const originalMimeType = imageFile.type || 'unknown';
+      console.log('原始文件名:', originalFileName);
+      console.log('原始MIME类型:', originalMimeType);
       
-      if (!['.jpg', '.jpeg', '.png', '.gif', '.webp'].includes(ext.toLowerCase())) {
-        console.log('Invalid file type');
+      // 后端二次校验 MIME 类型
+      const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp'];
+      const unsupportedMimeTypes = ['image/heic', 'image/heif', 'image/avif', 'image/hif', 'image/heics', 'image/heif-sequence'];
+      
+      if (unsupportedMimeTypes.includes(originalMimeType)) {
+        console.log('检测到不支持的HEIF/HEIC格式，已阻止上传');
+        return NextResponse.json({ error: '当前图片格式暂不支持，请关闭手机"高效图片/HEIF"后重新上传，或转换为 JPG 后上传' }, { status: 400 });
+      }
+      
+      if (!allowedMimeTypes.includes(originalMimeType)) {
+        console.log('MIME类型不在允许列表中，已拒绝');
         return NextResponse.json({ error: '不支持的图片格式，请上传 jpg、jpeg、png 或 webp 格式' }, { status: 400 });
       }
       
-      const filename = `${uuidv4()}${ext}`;
-      const filePath = path.join(UPLOADS_DIR, filename);
+      // 根据真实 MIME 类型生成正确的扩展名
+      let correctExt = '';
+      if (originalMimeType === 'image/jpeg') correctExt = '.jpg';
+      else if (originalMimeType === 'image/png') correctExt = '.png';
+      else if (originalMimeType === 'image/webp') correctExt = '.webp';
       
-      console.log('Uploads directory:', UPLOADS_DIR);
+      if (!correctExt) {
+        console.log('无法识别MIME类型对应的扩展名');
+        return NextResponse.json({ error: '不支持的图片格式，请上传 jpg、jpeg、png 或 webp 格式' }, { status: 400 });
+      }
+      
+      const filename = `${uuidv4()}${correctExt}`;
+      const filePath = path.join(UPLOADS_DIR, filename);
+      const savedPath = `/uploads/${filename}`;
+      
+      console.log('最终保存文件名:', filename);
+      console.log('保存路径:', savedPath);
       
       if (!fs.existsSync(UPLOADS_DIR)) {
         fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-        console.log('Created uploads directory');
+        console.log('创建上传目录完成');
       }
       
       try {
         const buffer = Buffer.from(await imageFile.arrayBuffer());
         fs.writeFileSync(filePath, buffer);
-        imagePath = `/uploads/${filename}`;
-        console.log('Image saved successfully:', imagePath);
+        imagePath = savedPath;
+        console.log('图片上传保存成功');
       } catch (saveError) {
-        console.error('Error saving image:', saveError);
+        console.error('图片保存失败:', saveError);
         return NextResponse.json({ error: '图片保存失败' }, { status: 500 });
       }
     }
