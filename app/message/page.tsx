@@ -3,7 +3,39 @@
 import { useState, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import path from "path";
+
+function getImageFormatFromMagic(bytes: Uint8Array): { format: string | null; mimeType: string | null } {
+  if (bytes.length < 12) {
+    return { format: null, mimeType: null };
+  }
+
+  const uint8 = bytes;
+
+  if (uint8[0] === 0xFF && uint8[1] === 0xD8 && uint8[2] === 0xFF) {
+    return { format: 'jpeg', mimeType: 'image/jpeg' };
+  }
+
+  if (uint8[0] === 0x89 && uint8[1] === 0x50 && uint8[2] === 0x4E && uint8[3] === 0x47) {
+    return { format: 'png', mimeType: 'image/png' };
+  }
+
+  if (uint8[0] === 0x52 && uint8[1] === 0x49 && uint8[2] === 0x46 && uint8[3] === 0x46 &&
+      uint8[8] === 0x57 && uint8[9] === 0x45 && uint8[10] === 0x42 && uint8[11] === 0x50) {
+    return { format: 'webp', mimeType: 'image/webp' };
+  }
+
+  if (uint8[4] === 0x66 && uint8[5] === 0x74 && uint8[6] === 0x79 && uint8[7] === 0x70) {
+    const brand = String.fromCharCode(uint8[8], uint8[9], uint8[10], uint8[11]);
+    if (brand.startsWith('heic') || brand.startsWith('mif1') || brand.startsWith('heix') || brand.startsWith('hevc')) {
+      return { format: 'heic', mimeType: 'image/heic' };
+    }
+    if (brand.startsWith('heif') || brand.startsWith('avif')) {
+      return { format: 'heif', mimeType: 'image/heif' };
+    }
+  }
+
+  return { format: null, mimeType: null };
+}
 
 function ConfirmModal({ onClose, onConfirm, loading }: { onClose: () => void; onConfirm: () => void; loading: boolean }) {
   return (
@@ -92,7 +124,7 @@ export default function MessagePage() {
   const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp'];
   const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
-  const handleImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const target = e.target as HTMLInputElement;
     const file = target.files?.[0];
     
@@ -102,46 +134,43 @@ export default function MessagePage() {
       return;
     }
 
-    // 获取文件真实 MIME 类型
-    const realMimeType = file.type;
-    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    const fileBuffer = await file.slice(0, 32).arrayBuffer();
+    const bytes = new Uint8Array(fileBuffer);
+    const { format, mimeType } = getImageFormatFromMagic(bytes);
     
-    // 不支持的 HEIF/HEIC 格式检测
-    const unsupportedFormats = ['image/heic', 'image/heif', 'image/avif', 'image/hif', 'image/heics', 'image/heif-sequence'];
-    const isUnsupported = unsupportedFormats.includes(realMimeType) || 
-                          (!realMimeType && (file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif')));
-    
-    if (isUnsupported) {
+    if (format === 'heic' || format === 'heif') {
       setError('当前图片格式暂不支持，请关闭手机"高效图片/HEIF"后重新上传，或转换为 JPG 后上传');
       target.value = '';
       return;
     }
     
-    // 检查真实 MIME 类型
-    if (!allowedMimeTypes.includes(realMimeType)) {
+    if (!format || !mimeType) {
+      setError('无法识别图片格式，请上传 jpg、jpeg、png 或 webp 格式');
+      target.value = '';
+      return;
+    }
+    
+    if (format !== 'jpeg' && format !== 'png' && format !== 'webp') {
       setError('图片格式不支持，请上传 jpg、jpeg、png 或 webp 格式');
       target.value = '';
       return;
     }
 
-    // Check file size
     if (file.size > MAX_FILE_SIZE) {
       setError('图片大小超过限制，请上传 5MB 以内的图片');
       target.value = '';
       return;
     }
 
-    // 根据真实 MIME 类型生成正确的扩展名
     let correctExt = '';
-    if (realMimeType === 'image/jpeg') correctExt = '.jpg';
-    else if (realMimeType === 'image/png') correctExt = '.png';
-    else if (realMimeType === 'image/webp') correctExt = '.webp';
+    if (format === 'jpeg') correctExt = '.jpg';
+    else if (format === 'png') correctExt = '.png';
+    else if (format === 'webp') correctExt = '.webp';
     
     const baseName = file.name.replace(/\.[^/.]+$/, '');
     const correctFileName = correctExt ? `${baseName}${correctExt}` : file.name;
     
-    // 创建新文件对象，使用正确的扩展名
-    const renamedFile = new File([file], correctFileName, { type: realMimeType });
+    const renamedFile = new File([file], correctFileName, { type: mimeType });
     
     setSelectedFile(renamedFile);
     setError('');

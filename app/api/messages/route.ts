@@ -120,30 +120,55 @@ export async function POST(request: Request) {
       console.log('原始文件名:', originalFileName);
       console.log('原始MIME类型:', originalMimeType);
       
-      // 后端二次校验 MIME 类型
-      const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp'];
-      const unsupportedMimeTypes = ['image/heic', 'image/heif', 'image/avif', 'image/hif', 'image/heics', 'image/heif-sequence'];
+      const fileBuffer = Buffer.from(await imageFile.arrayBuffer());
+      const bytes = fileBuffer.slice(0, 32);
       
-      if (unsupportedMimeTypes.includes(originalMimeType)) {
+      let detectedFormat: string | null = null;
+      let detectedMimeType: string | null = null;
+      
+      if (bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) {
+        detectedFormat = 'jpeg';
+        detectedMimeType = 'image/jpeg';
+      } else if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) {
+        detectedFormat = 'png';
+        detectedMimeType = 'image/png';
+      } else if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
+                 bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) {
+        detectedFormat = 'webp';
+        detectedMimeType = 'image/webp';
+      } else if (bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70) {
+        const brand = String.fromCharCode(bytes[8], bytes[9], bytes[10], bytes[11]);
+        if (brand.startsWith('heic') || brand.startsWith('mif1') || brand.startsWith('heix') || brand.startsWith('hevc')) {
+          detectedFormat = 'heic';
+          detectedMimeType = 'image/heic';
+        } else if (brand.startsWith('heif') || brand.startsWith('avif')) {
+          detectedFormat = 'heif';
+          detectedMimeType = 'image/heif';
+        }
+      }
+      
+      console.log('魔数检测格式:', detectedFormat);
+      console.log('魔数检测MIME:', detectedMimeType);
+      
+      if (detectedFormat === 'heic' || detectedFormat === 'heif') {
         console.log('检测到不支持的HEIF/HEIC格式，已阻止上传');
         return NextResponse.json({ error: '当前图片格式暂不支持，请关闭手机"高效图片/HEIF"后重新上传，或转换为 JPG 后上传' }, { status: 400 });
       }
       
-      if (!allowedMimeTypes.includes(originalMimeType)) {
-        console.log('MIME类型不在允许列表中，已拒绝');
+      if (!detectedFormat || !detectedMimeType) {
+        console.log('无法识别图片格式，已拒绝');
+        return NextResponse.json({ error: '无法识别图片格式，请上传 jpg、jpeg、png 或 webp 格式' }, { status: 400 });
+      }
+      
+      if (detectedFormat !== 'jpeg' && detectedFormat !== 'png' && detectedFormat !== 'webp') {
+        console.log('检测到不支持的格式，已拒绝');
         return NextResponse.json({ error: '不支持的图片格式，请上传 jpg、jpeg、png 或 webp 格式' }, { status: 400 });
       }
       
-      // 根据真实 MIME 类型生成正确的扩展名
       let correctExt = '';
-      if (originalMimeType === 'image/jpeg') correctExt = '.jpg';
-      else if (originalMimeType === 'image/png') correctExt = '.png';
-      else if (originalMimeType === 'image/webp') correctExt = '.webp';
-      
-      if (!correctExt) {
-        console.log('无法识别MIME类型对应的扩展名');
-        return NextResponse.json({ error: '不支持的图片格式，请上传 jpg、jpeg、png 或 webp 格式' }, { status: 400 });
-      }
+      if (detectedFormat === 'jpeg') correctExt = '.jpg';
+      else if (detectedFormat === 'png') correctExt = '.png';
+      else if (detectedFormat === 'webp') correctExt = '.webp';
       
       const filename = `${uuidv4()}${correctExt}`;
       const filePath = path.join(UPLOADS_DIR, filename);
@@ -158,8 +183,7 @@ export async function POST(request: Request) {
       }
       
       try {
-        const buffer = Buffer.from(await imageFile.arrayBuffer());
-        fs.writeFileSync(filePath, buffer);
+        fs.writeFileSync(filePath, fileBuffer);
         imagePath = savedPath;
         console.log('图片上传保存成功');
       } catch (saveError) {
