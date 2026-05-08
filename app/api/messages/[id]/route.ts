@@ -4,6 +4,7 @@ import path from 'path';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 const MESSAGES_FILE = path.join(DATA_DIR, 'messages.json');
+const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
 
 interface Message {
   id: number;
@@ -60,12 +61,28 @@ export async function DELETE(
     
     const message = messages[messageIndex];
     
+    // 删除关联的图片文件
     if (message.image) {
-      const imagePath = path.join(process.cwd(), 'public', message.image);
+      // 从 /api/uploads/xxx.jpg 提取文件名
+      const filename = message.image.replace('/api/uploads/', '');
+      const imagePath = path.join(UPLOADS_DIR, filename);
+      
+      console.log('========== 删除图片日志 ==========');
+      console.log('message.image:', message.image);
+      console.log('提取的文件名:', filename);
+      console.log('完整图片路径:', imagePath);
+      
       if (fs.existsSync(imagePath)) {
-        fs.unlinkSync(imagePath);
-        console.log('Deleted image:', imagePath);
+        try {
+          fs.unlinkSync(imagePath);
+          console.log('✅ 图片文件已删除:', imagePath);
+        } catch (deleteError) {
+          console.error('❌ 删除图片文件失败:', deleteError);
+        }
+      } else {
+        console.log('⚠️ 图片文件不存在，跳过删除:', imagePath);
       }
+      console.log('===================================');
     }
     
     messages.splice(messageIndex, 1);

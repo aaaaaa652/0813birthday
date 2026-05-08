@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 const MESSAGES_FILE = path.join(DATA_DIR, 'messages.json');
-const UPLOADS_DIR = path.join(process.cwd(), 'public', 'uploads');
+const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
 
 interface Message {
   id: number;
@@ -213,7 +213,7 @@ export async function POST(request: Request) {
       
       const filename = `${uuidv4()}${correctExt}`;
       const filePath = path.join(UPLOADS_DIR, filename);
-      const savedPath = `/uploads/${filename}`;
+      const savedPath = `/api/uploads/${filename}`;
       
       console.log('生成文件名:', filename);
       console.log('保存路径:', savedPath);
