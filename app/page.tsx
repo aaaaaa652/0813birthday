@@ -48,21 +48,18 @@ function MessageCard({ message, index, onClick }: { message: Message; index: num
       {/* 图片预览区 - 作为情绪配图 */}
       <div className="flex-shrink-0">
         {message.image ? (
-          <div className="w-full h-[60px] sm:h-[70px] rounded-lg overflow-hidden">
-            <Image
+          <div className="w-full h-[60px] sm:h-[70px] rounded-lg overflow-hidden bg-gray-100">
+            <img
               src={message.image}
               alt="祝福图片"
-              width={280}
-              height={70}
               className="w-full h-full object-cover"
-              unoptimized
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               onError={(e) => {
-                console.error('❌ 图片加载失败 - message.id:', message.id, 'src:', message.image);
-                console.error('图片可能不存在或路径错误');
+                console.error('❌ 卡片图片加载失败 - message.id:', message.id, 'src:', message.image);
                 (e.target as HTMLImageElement).style.display = 'none';
               }}
               onLoad={() => {
-                console.log('✅ 图片加载成功 - message.id:', message.id, 'src:', message.image);
+                console.log('✅ 卡片图片加载成功 - message.id:', message.id, 'src:', message.image);
               }}
             />
           </div>
@@ -122,13 +119,11 @@ function MessageDetailModal({ message, onClose }: { message: Message; onClose: (
         {message.image && (
           <div className="flex-shrink-0 mb-3 sm:mb-4">
             <div className="rounded-xl overflow-hidden bg-white border border-gray-100">
-              <Image
+              <img
                 src={message.image}
                 alt="图片"
-                width={400}
-                height={280}
                 className="w-full max-h-[200px] sm:max-h-[280px] object-contain"
-                unoptimized
+                style={{ width: '100%', maxHeight: '200px', objectFit: 'contain' }}
                 onError={(e) => {
                   console.error('❌ 弹窗图片加载失败 - message.id:', message.id, 'src:', message.image);
                   (e.target as HTMLImageElement).style.display = 'none';
