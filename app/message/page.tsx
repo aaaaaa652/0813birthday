@@ -11,19 +11,23 @@ function getImageFormatFromMagic(bytes: Uint8Array): { format: string | null; mi
 
   const uint8 = bytes;
 
+  // JPEG: FF D8 FF
   if (uint8[0] === 0xFF && uint8[1] === 0xD8 && uint8[2] === 0xFF) {
     return { format: 'jpeg', mimeType: 'image/jpeg' };
   }
 
+  // PNG: 89 50 4E 47
   if (uint8[0] === 0x89 && uint8[1] === 0x50 && uint8[2] === 0x4E && uint8[3] === 0x47) {
     return { format: 'png', mimeType: 'image/png' };
   }
 
+  // WebP: 52 49 46 46 ... 57 45 42 50
   if (uint8[0] === 0x52 && uint8[1] === 0x49 && uint8[2] === 0x46 && uint8[3] === 0x46 &&
       uint8[8] === 0x57 && uint8[9] === 0x45 && uint8[10] === 0x42 && uint8[11] === 0x50) {
     return { format: 'webp', mimeType: 'image/webp' };
   }
 
+  // HEIF/HEIC/AVIF: ftyp box at offset 4
   if (uint8[4] === 0x66 && uint8[5] === 0x74 && uint8[6] === 0x79 && uint8[7] === 0x70) {
     const brand = String.fromCharCode(uint8[8], uint8[9], uint8[10], uint8[11]);
     if (brand.startsWith('heic') || brand.startsWith('mif1') || brand.startsWith('heix') || brand.startsWith('hevc')) {
@@ -32,6 +36,16 @@ function getImageFormatFromMagic(bytes: Uint8Array): { format: string | null; mi
     if (brand.startsWith('heif') || brand.startsWith('avif')) {
       return { format: 'heif', mimeType: 'image/heif' };
     }
+  }
+
+  // GIF: 47 49 46 38
+  if (uint8[0] === 0x47 && uint8[1] === 0x49 && uint8[2] === 0x46 && uint8[3] === 0x38) {
+    return { format: 'gif', mimeType: 'image/gif' };
+  }
+
+  // BMP: 42 4D
+  if (uint8[0] === 0x42 && uint8[1] === 0x4D) {
+    return { format: 'bmp', mimeType: 'image/bmp' };
   }
 
   return { format: null, mimeType: null };
@@ -134,29 +148,41 @@ export default function MessagePage() {
       return;
     }
 
+    console.log('========== 前端图片选择日志 ==========');
+    console.log('文件名:', file.name);
+    console.log('文件大小:', file.size, 'bytes');
+    console.log('MIME类型:', file.type);
+    
     const fileBuffer = await file.slice(0, 32).arrayBuffer();
     const bytes = new Uint8Array(fileBuffer);
+    console.log('文件头部字节:', Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(' '));
+    
     const { format, mimeType } = getImageFormatFromMagic(bytes);
+    console.log('魔数检测结果 - format:', format, 'mimeType:', mimeType);
     
     if (format === 'heic' || format === 'heif') {
+      console.log('❌ 检测到HEIC/HEIF格式，已阻止');
       setError('当前图片格式暂不支持，请关闭手机"高效图片/HEIF"后重新上传，或转换为 JPG 后上传');
       target.value = '';
       return;
     }
     
     if (!format || !mimeType) {
+      console.log('❌ 无法识别图片格式');
       setError('无法识别图片格式，请上传 jpg、jpeg、png 或 webp 格式');
       target.value = '';
       return;
     }
     
     if (format !== 'jpeg' && format !== 'png' && format !== 'webp') {
+      console.log('❌ 不支持的格式:', format);
       setError('图片格式不支持，请上传 jpg、jpeg、png 或 webp 格式');
       target.value = '';
       return;
     }
 
     if (file.size > MAX_FILE_SIZE) {
+      console.log('❌ 文件大小超过限制');
       setError('图片大小超过限制，请上传 5MB 以内的图片');
       target.value = '';
       return;
@@ -169,11 +195,14 @@ export default function MessagePage() {
     
     const baseName = file.name.replace(/\.[^/.]+$/, '');
     const correctFileName = correctExt ? `${baseName}${correctExt}` : file.name;
+    console.log('修正后的文件名:', correctFileName);
     
     const renamedFile = new File([file], correctFileName, { type: mimeType });
     
     setSelectedFile(renamedFile);
     setError('');
+    console.log('✅ 图片选择通过，等待提交');
+    console.log('========================================');
     
     const reader = new FileReader();
     reader.onloadend = () => {

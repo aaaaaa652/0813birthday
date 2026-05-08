@@ -56,6 +56,14 @@ function MessageCard({ message, index, onClick }: { message: Message; index: num
               height={70}
               className="w-full h-full object-cover"
               unoptimized
+              onError={(e) => {
+                console.error('❌ 图片加载失败 - message.id:', message.id, 'src:', message.image);
+                console.error('图片可能不存在或路径错误');
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
+              onLoad={() => {
+                console.log('✅ 图片加载成功 - message.id:', message.id, 'src:', message.image);
+              }}
             />
           </div>
         ) : (
@@ -121,6 +129,13 @@ function MessageDetailModal({ message, onClose }: { message: Message; onClose: (
                 height={280}
                 className="w-full max-h-[200px] sm:max-h-[280px] object-contain"
                 unoptimized
+                onError={(e) => {
+                  console.error('❌ 弹窗图片加载失败 - message.id:', message.id, 'src:', message.image);
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+                onLoad={() => {
+                  console.log('✅ 弹窗图片加载成功 - message.id:', message.id, 'src:', message.image);
+                }}
               />
             </div>
           </div>
