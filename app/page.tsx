@@ -127,7 +127,47 @@ function MessageCard({ message, index, onClick }: { message: Message; index: num
   );
 }
 
-function MessageDetailModal({ message, onClose }: { message: Message; onClose: () => void }) {
+function ImagePreviewModal({ imageUrl, onClose }: { imageUrl: string; onClose: () => void }) {
+  useEffect(() => {
+    // 禁止页面滚动
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center">
+      {/* 半透明背景 */}
+      <div 
+        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      
+      {/* 关闭按钮 */}
+      <button
+        onClick={onClose}
+        className="absolute top-4 right-4 sm:top-6 sm:right-6 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors z-10"
+      >
+        <svg className="w-6 h-6 sm:w-8 sm:h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+      
+      {/* 图片 */}
+      <div className="relative z-10 max-w-[95vw] max-h-[90vh] sm:max-w-[90vw] sm:max-h-[85vh]">
+        <img
+          src={imageUrl}
+          alt="预览图片"
+          className="max-w-full max-h-[90vh] sm:max-h-[85vh] object-contain rounded-lg shadow-2xl"
+          style={{ maxWidth: '95vw', maxHeight: '90vh' }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function MessageDetailModal({ message, onClose, onImageClick }: { message: Message; onClose: () => void; onImageClick: (imageUrl: string) => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
       <div 
@@ -160,7 +200,7 @@ function MessageDetailModal({ message, onClose }: { message: Message; onClose: (
         
         {message.image && (
           <div className="flex-shrink-0 mb-3 sm:mb-4">
-            <div className="rounded-xl overflow-hidden bg-white border border-gray-100 cursor-pointer" onClick={() => message.image && window.open(message.image, '_blank')}>
+            <div className="rounded-xl overflow-hidden bg-white border border-gray-100 cursor-pointer" onClick={() => message.image && onImageClick(message.image)}>
               <img
                 src={message.image}
                 alt="图片"
@@ -393,6 +433,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [displayCount, setDisplayCount] = useState(MESSAGES_PER_PAGE);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchMessages = async () => {
@@ -559,6 +600,14 @@ export default function Home() {
         <MessageDetailModal 
           message={selectedMessage} 
           onClose={() => setSelectedMessage(null)} 
+          onImageClick={(imageUrl) => setPreviewImage(imageUrl)}
+        />
+      )}
+      
+      {previewImage && (
+        <ImagePreviewModal 
+          imageUrl={previewImage} 
+          onClose={() => setPreviewImage(null)} 
         />
       )}
     </div>
