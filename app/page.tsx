@@ -14,63 +14,114 @@ interface Message {
   createdAt: string;
 }
 
+// 柔和的纯色头像颜色方案
+const AVATAR_COLORS = [
+  '#FFB6C1', // 浅粉色
+  '#A5D8FF', // 浅蓝色
+  '#FFD591', // 浅黄色
+  '#95DE64', // 浅绿色
+  '#BDB2FF', // 浅紫色
+  '#FFC6A5', // 浅橙色
+];
+
+// 根据昵称生成固定颜色（同一个昵称始终返回同一颜色）
+function getAvatarColor(nickname: string): string {
+  let hash = 0;
+  for (let i = 0; i < nickname.length; i++) {
+    const char = nickname.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
+// 获取昵称首字符
+function getAvatarInitial(nickname: string): string {
+  if (!nickname || nickname.length === 0) return '?';
+  
+  // 处理中文昵称
+  const firstChar = nickname.charAt(0);
+  if (/[\u4e00-\u9fa5]/.test(firstChar)) {
+    return firstChar;
+  }
+  
+  // 处理英文昵称（取首字母大写）
+  return firstChar.toUpperCase();
+}
+
+// 纯色圆形头像组件
+function Avatar({ nickname, size = 'sm' }: { nickname: string; size?: 'xs' | 'sm' | 'md' | 'lg' }) {
+  const color = getAvatarColor(nickname);
+  const initial = getAvatarInitial(nickname);
+  
+  const sizeClasses = {
+    xs: 'w-5 h-5 text-[10px]',
+    sm: 'w-7 h-7 sm:w-8 sm:h-8 text-xs sm:text-sm',
+    md: 'w-9 h-9 sm:w-10 sm:h-10 text-sm sm:text-base',
+    lg: 'w-12 h-12 text-base',
+  };
+  
+  return (
+    <div
+      className={`${sizeClasses[size]} rounded-full flex items-center justify-center font-medium text-white flex-shrink-0`}
+      style={{ backgroundColor: color }}
+    >
+      {initial}
+    </div>
+  );
+}
+
 function MessageCard({ message, index, onClick }: { message: Message; index: number; onClick: (message: Message) => void }) {
   return (
     <div
-      className="glass-card glass-card-hover rounded-xl p-3 sm:p-4 card-hover-lift animate-fade-in-up cursor-pointer flex flex-col h-[260px] sm:h-[280px]"
-      style={{ animationDelay: `${index * 0.06}s` }}
+      className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-md hover:-translate-y-1 animate-fade-in-up"
+      style={{ animationDelay: `${index * 0.05}s` }}
       onClick={() => onClick(message)}
     >
-      {/* 顶部信息区 */}
-      <div className="flex items-center gap-2 mb-2 sm:mb-2.5 flex-shrink-0">
-        <div className="relative w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden flex-shrink-0 shadow-sm">
-          <Image
-            src={message.avatar}
-            alt={message.nickname}
-            fill
-            className="object-cover"
-            unoptimized
+      {/* 图片区域 - 保持原比例 */}
+      {message.image && (
+        <div className="relative w-full">
+          <img
+            src={message.image}
+            alt="祝福图片"
+            className="w-full object-cover"
+            style={{ width: '100%', display: 'block' }}
+            onError={(e) => {
+              console.error('❌ 卡片图片加载失败 - message.id:', message.id, 'src:', message.image);
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
+            onLoad={() => {
+              console.log('✅ 卡片图片加载成功 - message.id:', message.id, 'src:', message.image);
+            }}
           />
         </div>
-        <div className="flex-1 min-w-0 flex flex-col">
-          <h3 className="font-medium text-[#4a6a8a] text-[11px] sm:text-xs truncate">{message.nickname}</h3>
-          <span className="text-[10px] sm:text-[11px] text-[#a0aec0]">{message.time}</span>
+      )}
+      
+      {/* 内容区域 */}
+      <div className="p-3 sm:p-4">
+        {/* 用户信息 */}
+        <div className="flex items-center gap-2 mb-2">
+          <Avatar nickname={message.nickname} size="sm" />
+          <div className="flex-1 min-w-0">
+            <h3 className="font-medium text-gray-800 text-xs sm:text-sm truncate">{message.nickname}</h3>
+            <span className="text-[10px] text-gray-400">{message.time}</span>
+          </div>
         </div>
-      </div>
-
-      {/* 留言预览区 - 轻预览模式 */}
-      <div className="flex-1 min-h-0 mb-2 sm:mb-3">
-        <p className="text-[#5a6a7a] text-[11px] sm:text-xs leading-[1.6] line-clamp-3 overflow-hidden break-all">
+        
+        {/* 留言内容 - 根据是否有图片动态调整行数 */}
+        <p className={`serif-text text-xs sm:text-sm leading-relaxed whitespace-pre-wrap overflow-hidden
+          ${message.image 
+            ? 'line-clamp-2 sm:line-clamp-3' 
+            : 'line-clamp-3 sm:line-clamp-4'
+          }`}
+        >
           {message.content}
         </p>
-      </div>
-
-      {/* 图片预览区 - 作为情绪配图 */}
-      <div className="flex-shrink-0">
-        {message.image ? (
-          <div className="w-full h-[60px] sm:h-[70px] rounded-lg overflow-hidden bg-gray-100">
-            <img
-              src={message.image}
-              alt="祝福图片"
-              className="w-full h-full object-cover"
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              onError={(e) => {
-                console.error('❌ 卡片图片加载失败 - message.id:', message.id, 'src:', message.image);
-                (e.target as HTMLImageElement).style.display = 'none';
-              }}
-              onLoad={() => {
-                console.log('✅ 卡片图片加载成功 - message.id:', message.id, 'src:', message.image);
-              }}
-            />
-          </div>
-        ) : (
-          <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-[rgba(168,197,217,0.2)] to-transparent" />
-        )}
-      </div>
-
-      {/* 操作区 */}
-      <div className="flex-shrink-0 text-center mt-2 sm:mt-2.5">
-        <span className="text-[10px] text-[#7faacc]/70 font-normal">查看详情</span>
+        
+        {/* 底部提示 */}
+        <div className="mt-3 pt-3 border-t border-gray-50">
+          <span className="text-[10px] text-gray-400">点击查看详情</span>
+        </div>
       </div>
     </div>
   );
@@ -94,16 +145,7 @@ function MessageDetailModal({ message, onClose }: { message: Message; onClose: (
         </button>
         
         <div className="flex items-center gap-2.5 sm:gap-3 mb-3 sm:mb-4 flex-shrink-0">
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden shadow-sm flex-shrink-0">
-            <Image
-              src={message.avatar}
-              alt={message.nickname}
-              width={40}
-              height={40}
-              className="object-cover"
-              unoptimized
-            />
-          </div>
+          <Avatar nickname={message.nickname} size="md" />
           <div className="flex-1 min-w-0">
             <h3 className="text-sm sm:text-base font-medium text-gray-800 truncate">{message.nickname}</h3>
             <p className="text-[10px] sm:text-xs text-gray-500">{message.time}</p>
@@ -112,13 +154,13 @@ function MessageDetailModal({ message, onClose }: { message: Message; onClose: (
         
         <div className="flex-1 overflow-y-auto pr-1 min-h-0">
           <div className="bg-gray-50 rounded-xl p-3 sm:p-4 mb-3 sm:mb-4">
-            <p className="text-gray-700 leading-relaxed text-xs sm:text-sm whitespace-pre-wrap">{message.content}</p>
+            <p className="serif-text leading-relaxed text-xs sm:text-sm whitespace-pre-wrap">{message.content}</p>
           </div>
         </div>
         
         {message.image && (
           <div className="flex-shrink-0 mb-3 sm:mb-4">
-            <div className="rounded-xl overflow-hidden bg-white border border-gray-100">
+            <div className="rounded-xl overflow-hidden bg-white border border-gray-100 cursor-pointer" onClick={() => message.image && window.open(message.image, '_blank')}>
               <img
                 src={message.image}
                 alt="图片"
@@ -133,6 +175,7 @@ function MessageDetailModal({ message, onClose }: { message: Message; onClose: (
                 }}
               />
             </div>
+            <p className="text-center text-[10px] text-gray-400 mt-1">点击图片可放大查看</p>
           </div>
         )}
         
@@ -240,7 +283,6 @@ function FloatingMessages({ messages }: { messages: Message[] }) {
   const [displayMessages, setDisplayMessages] = useState<Message[]>([]);
 
   useEffect(() => {
-    // 从全部留言中随机抽取 5~8 条
     const count = Math.min(Math.floor(Math.random() * 4) + 5, messages.length);
     const shuffled = [...messages].sort(() => Math.random() - 0.5);
     setDisplayMessages(shuffled.slice(0, count));
@@ -288,12 +330,10 @@ function FloatingMessages({ messages }: { messages: Message[] }) {
             style={{ animationDelay: `${index * 0.1}s` }}
           >
             <div className="flex items-center gap-2 mb-2">
-              <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-gradient-to-br from-[#a8c5d9] to-[#c5d6e3] flex items-center justify-center">
-                <span className="text-[10px] sm:text-xs text-white font-medium">{message.nickname.slice(0, 1)}</span>
+                <Avatar nickname={message.nickname} size="xs" />
+                <span className="text-[10px] sm:text-xs font-medium text-[#5a7a94] truncate">{message.nickname}</span>
               </div>
-              <span className="text-[10px] sm:text-xs font-medium text-[#5a7a94] truncate">{message.nickname}</span>
-            </div>
-            <p className="text-[#5a6a7a] text-[10px] sm:text-xs leading-relaxed line-clamp-2">
+            <p className="serif-text text-[10px] sm:text-xs leading-relaxed line-clamp-2">
               {message.content}
             </p>
           </div>
@@ -313,7 +353,7 @@ function FloatingMessages({ messages }: { messages: Message[] }) {
   );
 }
 
-const MESSAGES_PER_PAGE = 12;
+const MESSAGES_PER_PAGE = 15;
 
 function BackToTopButton() {
   const [visible, setVisible] = useState(false);
@@ -366,26 +406,22 @@ export default function Home() {
         
         const data = await res.json();
         console.log('Fetched messages:', data.length);
-        // 按时间倒序排序，优先使用 time 字段（更可靠），其次 createdAt
         const sortedData = [...data].sort((a: Message, b: Message) => {
-          // 将中文时间格式转换为时间戳
           const parseTime = (msg: Message) => {
             const timeStr = msg.time || msg.createdAt;
             if (!timeStr) return 0;
-            // 处理 "YYYY-MM-DD HH:MM" 格式
             if (timeStr.includes('-') && timeStr.includes(':') && !timeStr.includes('T')) {
               const [datePart, timePart] = timeStr.split(' ');
               const [year, month, day] = datePart.split('-').map(Number);
               const [hour, minute] = timePart.split(':').map(Number);
               return new Date(year, month - 1, day, hour, minute).getTime();
             }
-            // ISO 格式
             return new Date(timeStr).getTime();
           };
           const timeA = parseTime(a);
           const timeB = parseTime(b);
           if (timeB !== timeA) return timeB - timeA;
-          return b.id - a.id; // 时间相同时按 id 排序
+          return b.id - a.id;
         });
         setMessages(sortedData);
       } catch (error) {
@@ -474,38 +510,50 @@ export default function Home() {
         
         <FloatingMessages messages={messages} />
 
-        <div className="container mx-auto px-4 sm:px-6 pb-8 sm:pb-12">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 mb-6 sm:mb-8">
+        {/* 瀑布流布局 */}
+        <div className="container mx-auto px-3 sm:px-4 pb-8 sm:pb-12">
+          <div className="columns-2 sm:columns-2 md:columns-3 lg:columns-4 gap-3 sm:gap-4">
             {displayedMessages.map((message, index) => (
-              <MessageCard 
-                key={message.id} 
-                message={message} 
-                index={index}
-                onClick={setSelectedMessage}
-              />
+              <div key={message.id} className="break-inside-avoid mb-3 sm:mb-4">
+                <MessageCard 
+                  message={message} 
+                  index={index}
+                  onClick={setSelectedMessage}
+                />
+              </div>
             ))}
           </div>
 
           {hasMore && (
-            <div className="text-center mb-6 sm:mb-8">
+            <div className="text-center mt-8 sm:mt-10">
               <button
                 onClick={handleLoadMore}
-                className="px-6 py-2.5 rounded-xl bg-white/60 text-[#5a7a94] text-sm font-medium hover:bg-white/80 transition-all border border-[#c5d6e3]"
+                className="px-8 py-3 rounded-full bg-white/80 text-[#5a7a94] text-sm font-medium hover:bg-white hover:shadow-md transition-all border border-gray-100"
               >
                 查看更多 ({messages.length - displayCount} 条)
               </button>
             </div>
           )}
-
-          <div className="text-center mb-6 sm:mb-8">
-            <LeaveMessageButton />
-          </div>
-
-          <footer className="text-center text-[#a0aec0] text-[10px] sm:text-xs mt-8 sm:mt-12">
-            <p>Made with care</p>
-          </footer>
         </div>
+
+        {/* Footer 信息栏 */}
+        <footer className="bg-white/50 border-t border-gray-100 py-6 sm:py-8 mt-8 sm:mt-12">
+          <div className="container mx-auto px-4 sm:px-6">
+            <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-400">
+              <span>ICP备案号：待填写</span>
+              <span className="hidden sm:inline">｜</span>
+              <span>Version 1.0.0</span>
+              <span className="hidden sm:inline">｜</span>
+              <span>信息举报邮箱：911359832@qq.com</span>
+            </div>
+            <div className="text-center text-[10px] text-gray-300 mt-3 sm:mt-4">
+              本站内容仅供参考，如有侵权请联系删除
+            </div>
+          </div>
+        </footer>
       </div>
+
+      <BackToTopButton />
 
       {selectedMessage && (
         <MessageDetailModal 
@@ -513,8 +561,6 @@ export default function Home() {
           onClose={() => setSelectedMessage(null)} 
         />
       )}
-
-      <BackToTopButton />
     </div>
   );
 }

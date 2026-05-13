@@ -6,6 +6,7 @@
   --text-primary: #2d3748;
   --text-secondary: #718096;
   --text-muted: #a0aec0;
+  --text-letter: #3d4852;
   --accent-blue: #7faacc;
   --accent-blue-light: #a8c5d9;
   --accent-blue-soft: #c5d6e3;
@@ -24,6 +25,7 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* UI区域字体 - 现代无衬线 */
 body {
   background: linear-gradient(
     165deg,
@@ -39,9 +41,37 @@ body {
   );
   background-attachment: fixed;
   color: var(--text-primary);
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
   min-height: 100vh;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 留言正文字体 - Serif 信件感 */
+.serif-text {
+  font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "Noto Serif CJK SC", serif;
+  color: var(--text-letter);
+  line-height: 1.8;
+  letter-spacing: 0.03em;
+  font-weight: 400;
+}
+
+/* 标签、按钮、导航等UI元素强制使用无衬线字体 */
+button,
+input,
+textarea,
+select,
+a,
+.label,
+.tag,
+.time,
+.btn,
+.navigation,
+.admin-panel,
+.card-header,
+.card-footer {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", system-ui, sans-serif !important;
 }
 
 @keyframes float {

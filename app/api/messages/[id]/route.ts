@@ -45,6 +45,21 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // 验证管理员权限
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: '请求格式错误' }, { status: 400 });
+    }
+    
+    const { sessionId } = body;
+    
+    // 简单的会话验证
+    if (!sessionId || sessionId.length === 0) {
+      return NextResponse.json({ error: '未授权访问' }, { status: 401 });
+    }
+    
     const { id } = await params;
     const messageId = parseInt(id);
     

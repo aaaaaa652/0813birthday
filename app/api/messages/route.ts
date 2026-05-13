@@ -1,11 +1,17 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 const MESSAGES_FILE = path.join(DATA_DIR, 'messages.json');
 const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
+
+// IP限流配置
+const RATE_LIMIT_WINDOW = 30000; // 30秒
+const RATE_LIMIT_MAX_REQUESTS = 1; // 最多1次
+
+// 存储IP访问记录 { ip: lastRequestTime }
+const ipAccessRecords = new Map<string, number>();
 
 interface Message {
   id: number;
@@ -43,6 +49,12 @@ function writeMessages(messages: Message[]): void {
   }
 }
 
+// 检测字符串中是否包含 Emoji
+function containsEmoji(str: string): boolean {
+  const emojiRegex = /[\u{1F300}-\u{1F5FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{1F900}-\u{1F9FF}\u{1FA70}-\u{1FAFF}\u{200D}]/u;
+  return emojiRegex.test(str);
+}
+
 export async function GET() {
   console.log('GET /api/messages called');
   let messages = readMessages();
@@ -75,6 +87,32 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    // 获取客户端IP
+    const clientIP = request.headers.get('x-forwarded-for') || 
+                     request.headers.get('x-real-ip') || 
+                     'unknown';
+    const ip = clientIP.split(',')[0]?.trim() || clientIP;
+    
+    const now = Date.now();
+    
+    console.log('========== 提交日志 ==========');
+    console.log('IP:', ip);
+    console.log('提交时间:', new Date(now).toLocaleString('zh-CN'));
+    
+    // IP限流检查
+    const lastRequestTime = ipAccessRecords.get(ip);
+    if (lastRequestTime && now - lastRequestTime < RATE_LIMIT_WINDOW) {
+      const remainingSeconds = Math.ceil((RATE_LIMIT_WINDOW - (now - lastRequestTime)) / 1000);
+      console.log('是否被限流: 是 (剩余', remainingSeconds, '秒)');
+      console.log('===============================');
+      return NextResponse.json({ 
+        error: '留言太快啦，稍微休息一下再发送吧～',
+        remainingSeconds 
+      }, { status: 429 });
+    }
+    
+    console.log('是否被限流: 否');
+    
     const formData = await request.formData();
     
     console.log('POST /api/messages called');
@@ -105,9 +143,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: '昵称不能为空' }, { status: 400 });
     }
     
+    // 检测昵称中是否包含 Emoji
+    if (containsEmoji(nickname)) {
+      return NextResponse.json({ error: '昵称不能包含表情符号' }, { status: 400 });
+    }
+    
     if (!content?.trim()) {
       return NextResponse.json({ error: '留言内容不能为空' }, { status: 400 });
     }
+    
+    // 检查内容是否为纯空格
+    if (!content.trim()) {
+      return NextResponse.json({ error: '留言内容不能为空' }, { status: 400 });
+    }
+    
+    // 记录IP访问时间（验证通过后记录）
+    ipAccessRecords.set(ip, now);
     
     const messages = readMessages();
     const maxId = messages.length > 0 ? Math.max(...messages.map(m => m.id)) : 0;
@@ -211,7 +262,12 @@ export async function POST(request: Request) {
       else if (detectedFormat === 'png') correctExt = '.png';
       else if (detectedFormat === 'webp') correctExt = '.webp';
       
-      const filename = `${uuidv4()}${correctExt}`;
+      const now = new Date();
+      const timestamp = now.getFullYear() + 
+                       String(now.getMonth() + 1).padStart(2, '0') + 
+                       String(now.getDate()).padStart(2, '0');
+      const randomStr = Math.random().toString(36).substring(2, 8);
+      const filename = `${timestamp}_${randomStr}${correctExt}`;
       const filePath = path.join(UPLOADS_DIR, filename);
       const savedPath = `/api/uploads/${filename}`;
       
@@ -249,8 +305,8 @@ export async function POST(request: Request) {
       console.log('===================================');
     }
     
-    const now = new Date();
-    const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const currentDate = new Date();
+    const timeStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')} ${String(currentDate.getHours()).padStart(2, '0')}:${String(currentDate.getMinutes()).padStart(2, '0')}`;
     
     const newMessage: Message = {
       id: maxId + 1,
@@ -259,7 +315,7 @@ export async function POST(request: Request) {
       avatar: `https://api.dicebear.com/7.x/adventurer/svg?seed=${nickname}${Date.now()}`,
       time: timeStr,
       image: imagePath,
-      createdAt: now.toISOString()
+      createdAt: currentDate.toISOString()
     };
     
     messages.unshift(newMessage);

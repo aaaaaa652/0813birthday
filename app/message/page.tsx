@@ -125,6 +125,13 @@ function ConfirmModal({ onClose, onConfirm, loading }: { onClose: () => void; on
   );
 }
 
+// 检测字符串中是否包含 Emoji
+function containsEmoji(str: string): boolean {
+  // Emoji 的 Unicode 范围
+  const emojiRegex = /[\u{1F300}-\u{1F5FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{1F900}-\u{1F9FF}\u{1FA70}-\u{1FAFF}\u{200D}]/u;
+  return emojiRegex.test(str);
+}
+
 export default function MessagePage() {
   const [nickname, setNickname] = useState("");
   const [content, setContent] = useState("");
@@ -134,6 +141,7 @@ export default function MessagePage() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [rateLimitRemaining, setRateLimitRemaining] = useState<number | null>(null);
 
   const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp'];
   const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -220,6 +228,12 @@ export default function MessagePage() {
       return false;
     }
     
+    // 检测昵称中是否包含 Emoji
+    if (containsEmoji(nickname)) {
+      setError("昵称不能包含表情符号");
+      return false;
+    }
+    
     if (nickname.length > MAX_NICKNAME_LENGTH) {
       setError(`昵称不能超过 ${MAX_NICKNAME_LENGTH} 个字符`);
       return false;
@@ -250,6 +264,7 @@ export default function MessagePage() {
   const handleConfirmSubmit = async () => {
     setShowConfirm(false);
     setLoading(true);
+    setError("");
     
     try {
       const formData = new FormData();
@@ -272,6 +287,21 @@ export default function MessagePage() {
         }, 2000);
       } else {
         const data = await res.json();
+        // 处理限流错误
+        if (res.status === 429 && data.remainingSeconds) {
+          setRateLimitRemaining(data.remainingSeconds);
+          // 倒计时
+          const timer = setInterval(() => {
+            setRateLimitRemaining(prev => {
+              if (prev === null || prev <= 1) {
+                clearInterval(timer);
+                setRateLimitRemaining(null);
+                return null;
+              }
+              return prev - 1;
+            });
+          }, 1000);
+        }
         setError(data.error || '提交失败');
       }
     } catch (err) {
@@ -399,6 +429,9 @@ export default function MessagePage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
                     {error}
+                    {rateLimitRemaining !== null && (
+                      <span className="text-[#a8c5d9]">({rateLimitRemaining}秒后可再次提交)</span>
+                    )}
                   </div>
                 )}
 

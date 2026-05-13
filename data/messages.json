@@ -1,6 +1,24 @@
 {
   "messages": [
     {
+      "id": 22,
+      "nickname": "900分",
+      "content": "重名会怎么样呢",
+      "avatar": "https://api.dicebear.com/7.x/adventurer/svg?seed=900分1778643787786",
+      "time": "2026-05-13 11:43",
+      "image": "/api/uploads/20260513_w0g23y.png",
+      "createdAt": "2026-05-13T03:43:07.786Z"
+    },
+    {
+      "id": 21,
+      "nickname": "900分",
+      "content": "改了一大推 再试试",
+      "avatar": "https://api.dicebear.com/7.x/adventurer/svg?seed=900分1778643100989",
+      "time": "2026-05-13 11:31",
+      "image": "/api/uploads/20260513_fq6rzq.png",
+      "createdAt": "2026-05-13T03:31:40.989Z"
+    },
+    {
       "id": 20,
       "nickname": "800分",
       "content": "就是为了截图",
@@ -8,15 +26,6 @@
       "time": "2026-05-06 18:35",
       "image": "/uploads/e5b5d43a-52ce-4b09-a10a-fea1ac19425e.jpg",
       "createdAt": "2026-05-06T10:35:59.064Z"
-    },
-    {
-      "id": 19,
-      "nickname": "700分",
-      "content": "测试二次确认",
-      "avatar": "https://api.dicebear.com/7.x/adventurer/svg?seed=700分1778063717200",
-      "time": "2026-05-06 18:35",
-      "image": "/uploads/509fd9f0-7e58-4837-bd30-1c06285de54a.webp",
-      "createdAt": "2026-05-06T10:35:17.200Z"
     },
     {
       "id": 18,
