@@ -68,8 +68,7 @@ export default function ThankYouCard({ data, onClose }: ThankYouCardProps) {
         scale: 2,
         useCORS: true,
         logging: false,
-        allowTaint: true,
-        timeout: 10000
+        allowTaint: true
       });
 
       const imageDataUrl = canvas.toDataURL("image/png");
