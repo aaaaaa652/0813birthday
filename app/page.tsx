@@ -590,7 +590,7 @@ export default function Home() {
             <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-400">
               <span>ICP备案号：待填写</span>
               <span className="hidden sm:inline">｜</span>
-              <span>Version 1.0.0</span>
+              <span>Version {process.env.NEXT_PUBLIC_APP_VERSION}</span>
               <span className="hidden sm:inline">｜</span>
               <span>信息举报邮箱：911359832@qq.com</span>
             </div>

@@ -46,6 +46,11 @@ export default function ThankYouCard({ data, onClose }: ThankYouCardProps) {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   };
 
+  const isWechat = () => {
+    const ua = navigator.userAgent.toLowerCase();
+    return ua.includes('micromessenger');
+  };
+
   const handleSaveImage = async () => {
     if (!cardRef.current) return;
     
@@ -141,22 +146,27 @@ export default function ThankYouCard({ data, onClose }: ThankYouCardProps) {
     <>
       {/* 图片预览弹窗 - 移动端使用 */}
       {previewImage && (
-        <div className="fixed inset-0 z-[101] flex items-center justify-center p-6 bg-black/80">
-          <div className="relative">
+        <div className="fixed inset-0 z-[101] flex flex-col items-center justify-center p-6 bg-black/80">
+          <div className="relative max-h-[75vh] overflow-auto">
             <button
               onClick={() => setPreviewImage(null)}
-              className="absolute -top-12 right-0 text-white text-sm bg-black/30 px-4 py-2 rounded-lg hover:bg-black/50 transition-colors"
+              className="absolute -top-12 right-0 text-white text-sm bg-black/30 px-4 py-2 rounded-lg hover:bg-black/50 transition-colors z-10"
             >
               关闭
             </button>
             <img
               src={previewImage}
               alt="预览图片"
-              className="max-w-[90vw] max-h-[80vh] object-contain rounded-lg"
+              className="max-w-[90vw] max-h-[70vh] object-contain rounded-lg"
             />
-            <div className="text-center mt-4 text-white text-sm">
-              长按图片保存到相册
-            </div>
+          </div>
+          <div className="text-center mt-4 text-white text-sm space-y-2">
+            <p>长按图片保存到相册</p>
+            {isWechat() && (
+              <p className="text-white/70 text-xs">
+                如无法保存，请长按图片或使用系统截图
+              </p>
+            )}
           </div>
         </div>
       )}
