@@ -1,0 +1,31 @@
+{
+  "messages": [
+    {
+      "id": 1,
+      "nickname": "小鱼儿",
+      "content": "祝你生日快乐！愿你的每一天都像海洋一样宽广美丽，充满无限可能。",
+      "avatar": "https://api.dicebear.com/7.x/adventurer/svg?seed=Felix",
+      "time": "2024-08-13 09:30",
+      "image": null,
+      "createdAt": "2024-08-13T09:30:00.000Z"
+    },
+    {
+      "id": 2,
+      "nickname": "海星少女",
+      "content": "生日快乐！希望你的未来像星空一样璀璨，像大海一样深邃。",
+      "avatar": "https://api.dicebear.com/7.x/adventurer/svg?seed=Luna",
+      "time": "2024-08-13 10:15",
+      "image": null,
+      "createdAt": "2024-08-13T10:15:00.000Z"
+    },
+    {
+      "id": 3,
+      "nickname": "蓝鲸少年",
+      "content": "愿你的生日充满欢笑和祝福，像海洋的波涛一样绵延不绝。",
+      "avatar": "https://api.dicebear.com/7.x/adventurer/svg?seed=Whale",
+      "time": "2024-08-13 11:00",
+      "image": null,
+      "createdAt": "2024-08-13T11:00:00.000Z"
+    }
+  ]
+}

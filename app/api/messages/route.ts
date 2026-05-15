@@ -21,12 +21,18 @@ interface Message {
   time: string;
   image: string | null;
   createdAt: string;
+  isPinned: boolean;
+  pinnedAt: string | null;
 }
 
 function readMessages(): Message[] {
   try {
     if (!fs.existsSync(MESSAGES_FILE)) {
-      console.log('Messages file not found:', MESSAGES_FILE);
+      console.log('Messages file not found, creating empty file:', MESSAGES_FILE);
+      if (!fs.existsSync(DATA_DIR)) {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+      }
+      fs.writeFileSync(MESSAGES_FILE, JSON.stringify({ messages: [] }, null, 2));
       return [];
     }
     const data = fs.readFileSync(MESSAGES_FILE, 'utf-8');
@@ -58,8 +64,24 @@ function containsEmoji(str: string): boolean {
 export async function GET() {
   console.log('GET /api/messages called');
   let messages = readMessages();
-  // 按时间倒序排序，优先使用 time 字段
+  // 排序规则：
+  // 1. 置顶留言（isPinned = true）排在最前
+  // 2. 置顶留言按 pinnedAt 倒序
+  // 3. 普通留言按 time/createdAt 倒序
   messages = messages.sort((a, b) => {
+    // 置顶优先级
+    if (a.isPinned && !b.isPinned) return -1;
+    if (!a.isPinned && b.isPinned) return 1;
+    
+    // 都是置顶或都是普通，按对应时间倒序
+    if (a.isPinned && b.isPinned) {
+      // 置顶留言按 pinnedAt 倒序
+      const pinnedAtA = a.pinnedAt ? new Date(a.pinnedAt).getTime() : 0;
+      const pinnedAtB = b.pinnedAt ? new Date(b.pinnedAt).getTime() : 0;
+      return pinnedAtB - pinnedAtA;
+    }
+    
+    // 普通留言按时间倒序，优先使用 time 字段
     const parseTime = (msg: Message) => {
       const timeStr = msg.time || msg.createdAt;
       if (!timeStr) return 0;
@@ -315,7 +337,9 @@ export async function POST(request: Request) {
       avatar: `https://api.dicebear.com/7.x/adventurer/svg?seed=${nickname}${Date.now()}`,
       time: timeStr,
       image: imagePath,
-      createdAt: currentDate.toISOString()
+      createdAt: currentDate.toISOString(),
+      isPinned: false,
+      pinnedAt: null
     };
     
     messages.unshift(newMessage);
@@ -326,5 +350,33 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Error saving message:', error);
     return NextResponse.json({ error: '保存失败' }, { status: 500 });
+  }
+}
+
+export async function PUT(request: Request) {
+  try {
+    const { id, isPinned } = await request.json();
+    
+    const messages = readMessages();
+    const messageIndex = messages.findIndex(m => m.id === id);
+    
+    if (messageIndex === -1) {
+      return NextResponse.json({ error: '留言不存在' }, { status: 404 });
+    }
+    
+    const now = new Date().toISOString();
+    
+    messages[messageIndex] = {
+      ...messages[messageIndex],
+      isPinned: isPinned,
+      pinnedAt: isPinned ? now : null
+    };
+    
+    writeMessages(messages);
+    
+    return NextResponse.json({ success: true, message: messages[messageIndex] });
+  } catch (error) {
+    console.error('Error toggling pin:', error);
+    return NextResponse.json({ error: '操作失败' }, { status: 500 });
   }
 }

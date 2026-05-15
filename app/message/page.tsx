@@ -3,6 +3,8 @@
 import { useState, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import ThankYouCard from "@/components/ThankYouCard";
+import { cards } from "@/data/cards";
 
 function getImageFormatFromMagic(bytes: Uint8Array): { format: string | null; mimeType: string | null } {
   if (bytes.length < 12) {
@@ -138,13 +140,21 @@ export default function MessagePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showThankYouCard, setShowThankYouCard] = useState(false);
+  const [currentCard, setCurrentCard] = useState<typeof cards[0] | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [rateLimitRemaining, setRateLimitRemaining] = useState<number | null>(null);
+  const [showFullscreen, setShowFullscreen] = useState(false);
 
   const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp'];
   const MAX_FILE_SIZE = 5 * 1024 * 1024;
+
+  const getRandomCard = () => {
+    const randomIndex = Math.floor(Math.random() * cards.length);
+    return cards[randomIndex];
+  };
 
   const handleImageUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const target = e.target as HTMLInputElement;
@@ -283,8 +293,10 @@ export default function MessagePage() {
       if (res.ok) {
         setShowSuccess(true);
         setTimeout(() => {
-          window.location.href = '/';
-        }, 2000);
+          const randomCard = getRandomCard();
+          setCurrentCard(randomCard);
+          setShowThankYouCard(true);
+        }, 1000);
       } else {
         const data = await res.json();
         // 处理限流错误
@@ -330,7 +342,7 @@ export default function MessagePage() {
             <div className="text-center mb-6 sm:mb-8">
               <div className="w-12 sm:w-16 h-px bg-gradient-to-r from-transparent via-[#a8c5d9] to-transparent mx-auto mb-3 sm:mb-4" />
               <h2 className="text-xl sm:text-2xl md:text-3xl font-medium text-[#253040] tracking-wide">
-                留下你的祝福
+                写下你想说的话
               </h2>
               <div className="w-12 sm:w-16 h-px bg-gradient-to-r from-transparent via-[#a8c5d9] to-transparent mx-auto mt-3 sm:mt-4" />
             </div>
@@ -343,7 +355,7 @@ export default function MessagePage() {
                   </svg>
                 </div>
                 <p className="text-[#4a6a8a] text-base sm:text-lg font-light">提交成功</p>
-                <p className="text-[#7a8a9a] text-sm mt-2">即将返回祝福墙...</p>
+                <p className="text-[#7a8a9a] text-sm mt-2">感谢你的祝福</p>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
@@ -363,7 +375,20 @@ export default function MessagePage() {
                 </div>
 
                 <div>
-                  <label className="block text-[#5a7a94] text-sm font-medium mb-2">祝福内容</label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-[#5a7a94] text-sm font-medium">想说的话</label>
+                    <button
+                      type="button"
+                      onClick={() => setShowFullscreen(true)}
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg text-[#7a8a9a] text-xs hover:text-[#5a7a94] hover:bg-[rgba(168,197,217,0.15)] transition-all"
+                      title="全屏写信"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                      </svg>
+                      <span className="hidden sm:inline">展开</span>
+                    </button>
+                  </div>
                   <textarea
                     value={content}
                     onChange={(e) => {
@@ -440,13 +465,13 @@ export default function MessagePage() {
                     href="/"
                     className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl border border-[#a8c5d9] text-[#5a7a94] text-xs sm:text-sm font-medium hover:bg-[rgba(168,197,217,0.1)] transition-all text-center"
                   >
-                    返回祝福墙
+                    返回留言墙
                   </Link>
                   <button
                     type="submit"
                     className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-[#7faacc] to-[#a8c5d9] text-white text-xs sm:text-sm font-medium hover:shadow-lg hover:shadow-[rgba(127,172,204,0.3)] transition-all flex items-center justify-center gap-2"
                   >
-                    提交祝福
+                    提交
                   </button>
                 </div>
               </form>
@@ -464,6 +489,92 @@ export default function MessagePage() {
           onClose={() => setShowConfirm(false)} 
           onConfirm={handleConfirmSubmit}
           loading={loading}
+        />
+      )}
+
+      {showFullscreen && (
+        <div className="fixed inset-0 z-[100] bg-white/98 backdrop-blur-md overflow-hidden flex flex-col">
+          {/* 顶部导航栏 */}
+          <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100 bg-white/80 backdrop-blur-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#7faacc] to-[#a8c5d9] flex items-center justify-center">
+                <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              </div>
+              <span className="text-sm sm:text-base font-medium text-[#253040]">写信</span>
+            </div>
+            <button
+              onClick={() => setShowFullscreen(false)}
+              className="w-8 h-8 sm:w-10 sm:h-10 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
+              title="关闭"
+            >
+              <svg className="w-5 h-5 text-[#7a8a9a]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* 主要输入区域 */}
+          <div className="flex-1 overflow-auto px-4 sm:px-6 py-4 sm:py-6">
+            <div className="max-w-2xl mx-auto">
+              <textarea
+                ref={(el) => el?.focus()}
+                value={content}
+                onChange={(e) => {
+                  setContent(e.target.value);
+                  setError("");
+                }}
+                placeholder="写下你想说的话..."
+                rows={20}
+                className="w-full min-h-[60vh] sm:min-h-[70vh] bg-transparent text-[#253040] placeholder-[#a0aec0] focus:outline-none text-base sm:text-lg leading-loose resize-none"
+                maxLength={MAX_CONTENT_LENGTH}
+                style={{ lineHeight: '1.8' }}
+              />
+            </div>
+          </div>
+
+          {/* 底部工具栏 */}
+          <div className="fixed bottom-0 left-0 right-0 px-4 sm:px-6 py-3 sm:py-4 bg-white/95 backdrop-blur-md border-t border-gray-100">
+            <div className="max-w-2xl mx-auto flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className={`text-xs sm:text-sm ${content.length >= MAX_CONTENT_LENGTH ? 'text-red-400' : 'text-[#a0aec0]'}`}>
+                  {content.length}/{MAX_CONTENT_LENGTH}
+                </span>
+              </div>
+              <div className="flex gap-2 sm:gap-3">
+                <button
+                  onClick={() => setShowFullscreen(false)}
+                  className="px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl border border-[#a8c5d9] text-[#5a7a94] text-xs sm:text-sm font-medium hover:bg-[rgba(168,197,217,0.1)] transition-all"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={() => {
+                    if (validateForm()) {
+                      setShowFullscreen(false);
+                      setShowConfirm(true);
+                    }
+                  }}
+                  disabled={!content.trim()}
+                  className="px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-[#7faacc] to-[#a8c5d9] text-white text-xs sm:text-sm font-medium hover:shadow-lg hover:shadow-[rgba(127,172,204,0.3)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  提交
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showThankYouCard && currentCard && (
+        <ThankYouCard 
+          data={currentCard} 
+          onClose={() => {
+            setShowThankYouCard(false);
+            setCurrentCard(null);
+            window.location.href = '/';
+          }} 
         />
       )}
     </div>

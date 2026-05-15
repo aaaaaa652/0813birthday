@@ -10,6 +10,8 @@ interface Message {
   avatar: string;
   time: string;
   image: string | null;
+  isPinned: boolean;
+  pinnedAt: string | null;
 }
 
 // 柔和的纯色头像颜色方案
@@ -229,14 +231,52 @@ export default function AdminPage() {
     }
   };
 
-  const filteredMessages = messages.filter((message) => {
-    if (!searchQuery.trim()) return true;
-    const query = searchQuery.toLowerCase();
-    return (
-      message.nickname.toLowerCase().includes(query) ||
-      message.content.toLowerCase().includes(query)
-    );
-  });
+  const handleTogglePin = async (id: number, currentPinned: boolean) => {
+    try {
+      const res = await fetch('/api/messages', {
+        method: "PUT",
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id, isPinned: !currentPinned }),
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        setMessages(prev => prev.map(m => 
+          m.id === id ? data.message : m
+        ));
+        setToast({ 
+          type: "success", 
+          message: currentPinned ? "取消置顶成功" : "置顶成功" 
+        });
+      } else {
+        const data = await res.json();
+        setToast({ type: "error", message: data.error || "操作失败" });
+      }
+    } catch (err) {
+      console.error("Pin error:", err);
+      setToast({ type: "error", message: "操作失败" });
+    }
+  };
+
+  const filteredMessages = messages
+    .filter((message) => {
+      if (!searchQuery.trim()) return true;
+      const query = searchQuery.toLowerCase();
+      return (
+        message.nickname.toLowerCase().includes(query) ||
+        message.content.toLowerCase().includes(query)
+      );
+    })
+    .sort((a, b) => {
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+      if (a.isPinned && b.isPinned) {
+        return new Date(b.pinnedAt || b.time).getTime() - new Date(a.pinnedAt || a.time).getTime();
+      }
+      return new Date(b.time).getTime() - new Date(a.time).getTime();
+    });
 
   if (!authenticated) {
     return (
@@ -348,6 +388,16 @@ export default function AdminPage() {
                 key={message.id} 
                 className="glass-card rounded-xl p-3 sm:p-4 relative"
               >
+                {/* 置顶标识 */}
+                {message.isPinned && (
+                  <div className="absolute top-2.5 sm:top-3 left-2.5 sm:left-3 px-2 py-0.5 bg-orange-500 text-white text-[10px] sm:text-xs rounded-full flex items-center gap-1 z-10">
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                    </svg>
+                    置顶
+                  </div>
+                )}
+                
                 <div className="flex items-start gap-2.5 sm:gap-3 mb-2.5 sm:mb-3">
                   <Avatar nickname={message.nickname} size="md" />
                   <div className="flex-1 min-w-0">
@@ -370,12 +420,24 @@ export default function AdminPage() {
                   </div>
                 )}
                 
-                <button
-                  onClick={() => setShowConfirm(message.id)}
-                  className="w-full py-2 rounded-lg bg-red-50 text-red-500 text-xs sm:text-sm hover:bg-red-100 transition-all"
-                >
-                  删除留言
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleTogglePin(message.id, message.isPinned)}
+                    className={`flex-1 py-2 rounded-lg text-xs sm:text-sm transition-all ${
+                      message.isPinned 
+                        ? 'bg-gray-100 text-gray-600 hover:bg-gray-200' 
+                        : 'bg-blue-50 text-blue-500 hover:bg-blue-100'
+                    }`}
+                  >
+                    {message.isPinned ? '取消置顶' : '置顶'}
+                  </button>
+                  <button
+                    onClick={() => setShowConfirm(message.id)}
+                    className="flex-1 py-2 rounded-lg bg-red-50 text-red-500 text-xs sm:text-sm hover:bg-red-100 transition-all"
+                  >
+                    删除留言
+                  </button>
+                </div>
 
                 {/* 删除确认弹窗 */}
                 {showConfirm === message.id && (

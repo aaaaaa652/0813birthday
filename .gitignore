@@ -43,3 +43,5 @@ next-env.d.ts
 .env.local
 
 /uploads
+/public/uploads
+data/messages.json

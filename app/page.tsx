@@ -12,6 +12,8 @@ interface Message {
   time: string;
   image: string | null;
   createdAt: string;
+  isPinned: boolean;
+  pinnedAt: string | null;
 }
 
 // 柔和的纯色头像颜色方案
@@ -74,10 +76,20 @@ function Avatar({ nickname, size = 'sm' }: { nickname: string; size?: 'xs' | 'sm
 function MessageCard({ message, index, onClick }: { message: Message; index: number; onClick: (message: Message) => void }) {
   return (
     <div
-      className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-md hover:-translate-y-1 animate-fade-in-up"
+      className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-md hover:-translate-y-1 animate-fade-in-up relative"
       style={{ animationDelay: `${index * 0.05}s` }}
       onClick={() => onClick(message)}
     >
+      {/* 置顶标识 */}
+      {message.isPinned && (
+        <div className="absolute top-2.5 left-2.5 px-2 py-0.5 bg-orange-500 text-white text-[10px] rounded-full flex items-center gap-1 z-10 shadow-sm">
+          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+          </svg>
+          置顶
+        </div>
+      )}
+      
       {/* 图片区域 - 保持原比例 */}
       {message.image && (
         <div className="relative w-full">
@@ -175,6 +187,16 @@ function MessageDetailModal({ message, onClose, onImageClick }: { message: Messa
         onClick={onClose}
       />
       <div className="relative bg-white/95 backdrop-blur-lg rounded-2xl p-4 sm:p-5 max-w-sm sm:max-w-md w-full max-h-[90vh] sm:max-h-[85vh] shadow-xl border border-white/70 overflow-hidden flex flex-col">
+        {/* 置顶标识 */}
+        {message.isPinned && (
+          <div className="absolute top-3 sm:top-4 left-3 sm:left-4 px-2 py-0.5 bg-orange-500 text-white text-[10px] rounded-full flex items-center gap-1 z-10">
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+            </svg>
+            置顶
+          </div>
+        )}
+        
         <button
           onClick={onClose}
           className="absolute top-3 right-3 sm:top-4 sm:right-4 w-9 h-9 sm:w-8 sm:h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors z-10"
@@ -447,24 +469,9 @@ export default function Home() {
         
         const data = await res.json();
         console.log('Fetched messages:', data.length);
-        const sortedData = [...data].sort((a: Message, b: Message) => {
-          const parseTime = (msg: Message) => {
-            const timeStr = msg.time || msg.createdAt;
-            if (!timeStr) return 0;
-            if (timeStr.includes('-') && timeStr.includes(':') && !timeStr.includes('T')) {
-              const [datePart, timePart] = timeStr.split(' ');
-              const [year, month, day] = datePart.split('-').map(Number);
-              const [hour, minute] = timePart.split(':').map(Number);
-              return new Date(year, month - 1, day, hour, minute).getTime();
-            }
-            return new Date(timeStr).getTime();
-          };
-          const timeA = parseTime(a);
-          const timeB = parseTime(b);
-          if (timeB !== timeA) return timeB - timeA;
-          return b.id - a.id;
-        });
-        setMessages(sortedData);
+        // API 已经按置顶状态排序，直接使用返回的数据
+        // 排序规则：置顶优先，置顶按时间倒序，普通留言按时间倒序
+        setMessages(data);
       } catch (error) {
         console.error('Failed to fetch messages:', error);
         setError('加载失败，请刷新页面重试');
