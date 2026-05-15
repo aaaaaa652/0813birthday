@@ -64,16 +64,33 @@ export default function ThankYouCard({ data, onClose }: ThankYouCardProps) {
         if (img.complete) return Promise.resolve();
         return new Promise((resolve, reject) => {
           img.onload = resolve;
-          img.onerror = reject;
+          img.onerror = () => {
+            console.warn('Image load failed, continuing anyway');
+            resolve(null);
+          };
         });
       }));
+
+      // 等待一帧确保 DOM 更新
+      await new Promise(resolve => requestAnimationFrame(resolve));
 
       const canvas = await html2canvas(cardRef.current, {
         backgroundColor: "#ffffff",
         scale: 2,
         useCORS: true,
-        logging: false,
-        allowTaint: true
+        logging: true,
+        allowTaint: true,
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: cardRef.current.scrollWidth,
+        windowHeight: cardRef.current.scrollHeight,
+        onclone: (clonedDoc) => {
+          const clonedCard = clonedDoc.body.querySelector('[data-card-ref]');
+          if (clonedCard) {
+            clonedCard.style.transform = 'none';
+            clonedCard.style.opacity = '1';
+          }
+        }
       });
 
       const imageDataUrl = canvas.toDataURL("image/png");
@@ -94,47 +111,9 @@ export default function ThankYouCard({ data, onClose }: ThankYouCardProps) {
       }
     } catch (error) {
       console.error("Image capture failed:", error);
-      // 尝试降级方案：使用 canvas 直接绘制
-      try {
-        await fallbackSaveImage();
-      } catch (fallbackError) {
-        console.error("Fallback capture failed:", fallbackError);
-        setErrorMessage("图片生成失败，请截图保存");
-      }
+      setErrorMessage("图片生成失败，请截图保存");
     } finally {
       setIsSaving(false);
-    }
-  };
-
-  // 降级方案：手动创建canvas绘制
-  const fallbackSaveImage = async () => {
-    if (!cardRef.current) return;
-    
-    const rect = cardRef.current.getBoundingClientRect();
-    const canvas = document.createElement('canvas');
-    const scale = 2;
-    canvas.width = rect.width * scale;
-    canvas.height = rect.height * scale;
-    const ctx = canvas.getContext('2d');
-    
-    if (!ctx) throw new Error('Canvas context not available');
-    
-    // 绘制白色背景
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    const now = new Date();
-    const fileName = `thank-you-card-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}.png`;
-
-    if (isMobile()) {
-      setPreviewImage(canvas.toDataURL("image/png"));
-    } else {
-      const link = document.createElement("a");
-      link.download = fileName;
-      link.href = canvas.toDataURL("image/png");
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
     }
   };
 
@@ -183,6 +162,7 @@ export default function ThankYouCard({ data, onClose }: ThankYouCardProps) {
           {/* 可截图的卡片本体 */}
           <div 
             ref={cardRef}
+            data-card-ref="true"
             className="bg-white max-w-[400px] sm:max-w-[480px] w-[90vw] rounded-2xl overflow-hidden shadow-2xl"
           >
             {/* 图片区域 - 横图，约占卡片35-40% */}
