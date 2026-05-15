@@ -85,7 +85,7 @@ export default function ThankYouCard({ data, onClose }: ThankYouCardProps) {
         windowWidth: cardRef.current.scrollWidth,
         windowHeight: cardRef.current.scrollHeight,
         onclone: (clonedDoc) => {
-          const clonedCard = clonedDoc.body.querySelector('[data-card-ref]');
+          const clonedCard = clonedDoc.body.querySelector('[data-card-ref]') as HTMLElement | null;
           if (clonedCard) {
             clonedCard.style.transform = 'none';
             clonedCard.style.opacity = '1';
