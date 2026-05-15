@@ -69,7 +69,6 @@ export default function ThankYouCard({ data, onClose }: ThankYouCardProps) {
         useCORS: true,
         logging: false,
         allowTaint: true,
-        taintTest: false,
         timeout: 10000
       });
 
