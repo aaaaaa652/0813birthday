@@ -270,25 +270,10 @@ export default function ThankYouCard({ data, onClose }: ThankYouCardProps) {
           </div>
 
           {/* 操作按钮区域 */}
-          <div className="mt-6 flex gap-4">
-            {isLoading ? (
-              <button
-                disabled
-                className="px-6 py-2.5 bg-gray-300 text-white text-sm rounded-full cursor-not-allowed"
-              >
-                生成图片中...
-              </button>
-            ) : (
-              <button
-                onClick={generateImage}
-                className="px-6 py-2.5 bg-gray-800 text-white text-sm rounded-full hover:bg-gray-700 transition-colors"
-              >
-                查看大图
-              </button>
-            )}
+          <div className="mt-6">
             <button
               onClick={handleClose}
-              className="px-6 py-2.5 bg-white/80 text-gray-600 text-sm rounded-full hover:bg-white transition-colors"
+              className="px-8 py-2.5 bg-white/80 text-gray-600 text-sm rounded-full hover:bg-white transition-colors"
             >
               关闭
             </button>
