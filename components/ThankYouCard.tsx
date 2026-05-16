@@ -19,7 +19,7 @@ interface ThankYouCardProps {
 export default function ThankYouCard({ data, onClose }: ThankYouCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -31,7 +31,11 @@ export default function ThankYouCard({ data, onClose }: ThankYouCardProps) {
 
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === "Escape") {
-      onClose();
+      if (previewImage) {
+        setPreviewImage(null);
+      } else {
+        onClose();
+      }
     }
   };
 
@@ -40,7 +44,7 @@ export default function ThankYouCard({ data, onClose }: ThankYouCardProps) {
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, []);
+  }, [previewImage]);
 
   const isMobile = () => {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -51,19 +55,18 @@ export default function ThankYouCard({ data, onClose }: ThankYouCardProps) {
     return ua.includes('micromessenger');
   };
 
-  const handleSaveImage = async () => {
+  const generateImage = async () => {
     if (!cardRef.current) return;
-    
-    setIsSaving(true);
+
+    setIsLoading(true);
     setErrorMessage(null);
 
     try {
-      // 等待图片加载完成
       const images = cardRef.current.querySelectorAll('img');
       await Promise.all(Array.from(images).map(img => {
         if (img.complete) return Promise.resolve();
-        return new Promise((resolve, reject) => {
-          img.onload = resolve;
+        return new Promise((resolve) => {
+          img.onload = () => resolve(null);
           img.onerror = () => {
             console.warn('Image load failed, continuing anyway');
             resolve(null);
@@ -71,14 +74,13 @@ export default function ThankYouCard({ data, onClose }: ThankYouCardProps) {
         });
       }));
 
-      // 等待一帧确保 DOM 更新
       await new Promise(resolve => requestAnimationFrame(resolve));
 
       const canvas = await html2canvas(cardRef.current, {
         backgroundColor: "#ffffff",
         scale: 2,
         useCORS: true,
-        logging: true,
+        logging: false,
         allowTaint: true,
         scrollX: 0,
         scrollY: 0,
@@ -94,27 +96,25 @@ export default function ThankYouCard({ data, onClose }: ThankYouCardProps) {
       });
 
       const imageDataUrl = canvas.toDataURL("image/png");
-      const now = new Date();
-      const fileName = `thank-you-card-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}.png`;
-
-      if (isMobile()) {
-        // 移动端：显示预览，提示长按保存
-        setPreviewImage(imageDataUrl);
-      } else {
-        // PC端：直接下载
-        const link = document.createElement("a");
-        link.download = fileName;
-        link.href = imageDataUrl;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      }
+      setPreviewImage(imageDataUrl);
     } catch (error) {
       console.error("Image capture failed:", error);
       setErrorMessage("图片生成失败，请截图保存");
     } finally {
-      setIsSaving(false);
+      setIsLoading(false);
     }
+  };
+
+  useEffect(() => {
+    generateImage();
+  }, []);
+
+  const handleClosePreview = () => {
+    setPreviewImage(null);
+  };
+
+  const handleClose = () => {
+    onClose();
   };
 
   const now = new Date();
@@ -123,44 +123,51 @@ export default function ThankYouCard({ data, onClose }: ThankYouCardProps) {
 
   return (
     <>
-      {/* 图片预览弹窗 - 移动端使用 */}
+      {/* 图片预览弹窗 - 用户可长按/右键保存 */}
       {previewImage && (
-        <div className="fixed inset-0 z-[101] flex flex-col items-center justify-center p-6 bg-black/80">
-          <div className="relative max-h-[75vh] overflow-auto">
+        <div className="fixed inset-0 z-[101] flex flex-col items-center justify-center p-4 sm:p-6 bg-black/90">
+          <div className="relative max-h-[80vh] overflow-auto">
             <button
-              onClick={() => setPreviewImage(null)}
-              className="absolute -top-12 right-0 text-white text-sm bg-black/30 px-4 py-2 rounded-lg hover:bg-black/50 transition-colors z-10"
+              onClick={handleClosePreview}
+              className="absolute -top-10 sm:-top-12 right-0 text-white text-sm bg-black/30 px-4 py-2 rounded-lg hover:bg-black/50 transition-colors z-10"
             >
-              关闭
+              关闭预览
             </button>
             <img
               src={previewImage}
               alt="预览图片"
-              className="max-w-[90vw] max-h-[70vh] object-contain rounded-lg"
+              className="max-w-[90vw] max-h-[75vh] object-contain rounded-lg"
+              style={{ touchAction: 'manipulation' }}
             />
           </div>
-          <div className="text-center mt-4 text-white text-sm space-y-2">
+          <div className="text-center mt-4 sm:mt-6 text-white text-sm space-y-2 px-4">
             <p>长按图片保存到相册</p>
             {isWechat() && (
               <p className="text-white/70 text-xs">
                 如无法保存，请长按图片或使用系统截图
               </p>
             )}
+            {!isMobile() && (
+              <p className="text-white/50 text-xs mt-2">
+                或右键图片选择「另存为」
+              </p>
+            )}
           </div>
         </div>
       )}
 
+      {/* 卡片弹窗主体 */}
       <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/5">
         {/* 背景层 - 点击关闭 */}
         <div
           className="absolute inset-0 bg-black/65"
-          onClick={onClose}
+          onClick={handleClose}
         />
 
         {/* 卡片主体 - 像印刷品一样的质感 */}
         <div className="relative z-10 flex flex-col items-center">
           {/* 可截图的卡片本体 */}
-          <div 
+          <div
             ref={cardRef}
             data-card-ref="true"
             className="bg-white max-w-[400px] sm:max-w-[480px] w-[90vw] rounded-2xl overflow-hidden shadow-2xl"
@@ -174,32 +181,32 @@ export default function ThankYouCard({ data, onClose }: ThankYouCardProps) {
                   className="w-full h-full object-cover"
                   style={{ objectPosition: data.imagePosition || "center center" }}
                 />
-              
+
               {/* 电影感渐变遮罩 - 主要在底部和右侧 */}
-              <div 
+              <div
                 className="absolute inset-0 pointer-events-none"
                 style={{
                   background: 'linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.15) 80%, rgba(0,0,0,0.25) 100%)'
                 }}
               />
-              
+
               {/* 细边框 - 距离图片边缘16px */}
               <div className="absolute inset-[16px] border border-white/50 pointer-events-none" />
-              
+
               {/* 日期 - 右下角 */}
               <div className="absolute bottom-4 right-4">
-                <div 
+                <div
                   className="text-white"
                   style={{ textShadow: '0 1px 3px rgba(0,0,0,0.3)' }}
                 >
-                  <div 
-                    className="text-[36px] sm:text-[42px] tracking-tight" 
+                  <div
+                    className="text-[36px] sm:text-[42px] tracking-tight"
                     style={{ fontWeight: 200 }}
                   >
                     {day}
                   </div>
-                  <div 
-                    className="text-[9px] tracking-[0.5em] mt-1" 
+                  <div
+                    className="text-[9px] tracking-[0.5em] mt-1"
                     style={{ fontWeight: 300, opacity: 0.85 }}
                   >
                     {month}
@@ -231,8 +238,8 @@ export default function ThankYouCard({ data, onClose }: ThankYouCardProps) {
 
               {/* 祝福语 - 视觉中心 */}
               <div className="text-center mb-3">
-                <p 
-                  className="text-xl sm:text-2xl text-gray-700" 
+                <p
+                  className="text-xl sm:text-2xl text-gray-700"
                   style={{ fontWeight: 300, letterSpacing: '0.08em' }}
                 >
                   {data.blessing}
@@ -255,17 +262,25 @@ export default function ThankYouCard({ data, onClose }: ThankYouCardProps) {
             </div>
           </div>
 
-          {/* 保存图片按钮 - 不在截图范围内 */}
+          {/* 操作按钮区域 */}
           <div className="mt-6 flex gap-4">
+            {isLoading ? (
+              <button
+                disabled
+                className="px-6 py-2.5 bg-gray-300 text-white text-sm rounded-full cursor-not-allowed"
+              >
+                生成图片中...
+              </button>
+            ) : (
+              <button
+                onClick={generateImage}
+                className="px-6 py-2.5 bg-gray-800 text-white text-sm rounded-full hover:bg-gray-700 transition-colors"
+              >
+                查看大图
+              </button>
+            )}
             <button
-              onClick={handleSaveImage}
-              disabled={isSaving}
-              className="px-6 py-2.5 bg-gray-800 text-white text-sm rounded-full hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSaving ? "生成中..." : "保存图片"}
-            </button>
-            <button
-              onClick={onClose}
+              onClick={handleClose}
               className="px-6 py-2.5 bg-white/80 text-gray-600 text-sm rounded-full hover:bg-white transition-colors"
             >
               关闭
