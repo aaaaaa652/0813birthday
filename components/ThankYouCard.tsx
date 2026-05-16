@@ -259,6 +259,13 @@ export default function ThankYouCard({ data, onClose }: ThankYouCardProps) {
                   THANK YOU
                 </p>
               </div>
+
+              {/* 版权声明 */}
+              <div className="text-right pr-2 pb-2">
+                <p className="text-[8px] text-gray-300" style={{ fontWeight: 300 }}>
+                  图片来自网络，侵删，邮箱见底部
+                </p>
+              </div>
             </div>
           </div>
 

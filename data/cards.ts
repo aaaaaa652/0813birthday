@@ -192,4 +192,86 @@ export const cards = [
     blessing: "愿你明月相伴",
     source: "《月亮妹妹》"
   },
-];
+
+{
+    id: 15,
+    image: "/cards/card15.jpg",
+    imagePosition: "center 35%",
+    lyric: [
+      "苗山月色好",
+      "苗家爱月圆",
+      "月随人意走",
+      "梦随月儿圆"
+    ],
+    blessing: "愿你好梦成真",
+    source: "《苗山明月》"
+  },
+
+{
+    id: 15,
+    image: "/cards/card15.jpg",
+    imagePosition: "center 35%",
+    lyric: [
+      "苗山月色好",
+      "苗家爱月圆",
+      "月随人意走",
+      "梦随月儿圆"
+    ],
+    blessing: "愿你好梦成真",
+    source: "《苗山明月》"
+  },
+
+{
+    id: 16,
+    image: "/cards/card16.jpg",
+    imagePosition: "center 35%",
+    lyric: [
+      "谁是我知音",
+      "谁解我情怀",
+      "一片冰心等君来"
+      ],
+    blessing: "愿你高山流水",
+    source: "《梅花引》"
+  },
+
+{
+    id: 17,
+    image: "/cards/card17.jpg",
+    imagePosition: "center 35%",
+    lyric: [
+      "星儿闪闪",
+      "月儿圆圆",
+      "你的微笑",
+      "陪着我作伴"
+      ],
+    blessing: "愿你安宁自得",
+    source: "《期盼》"
+  },
+
+{
+    id: 18,
+    image: "/cards/card18.jpg",
+    imagePosition: "center 35%",
+    lyric: [
+      "回首黄沙古道",
+      "风雨飘渺",
+      "聆听莽原峡谷",
+      "龙吟虎啸"
+      ],
+    blessing: "愿你意气风发",
+    source: "《数风流人物》"
+  },
+
+{
+    id: 19,
+    image: "/cards/card19.jpg",
+    imagePosition: "center 35%",
+    lyric: [
+      "今天我突然被陶醉",
+      "看见一丛三角梅",
+      "你这枚可爱的故乡花",
+      "竟和我突然来相会"
+      ],
+    blessing: "愿你惊喜常伴",
+    source: "《三角梅》"
+  },
