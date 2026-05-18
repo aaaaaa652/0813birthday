@@ -17,6 +17,13 @@ export const metadata: Metadata = {
   description: "🌊 一个温馨的生日粉丝祝福墙，收集来自四面八方的美好祝愿 💙",
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
