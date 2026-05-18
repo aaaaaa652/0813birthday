@@ -19,8 +19,9 @@ interface ThankYouCardProps {
 export default function ThankYouCard({ data, onClose }: ThankYouCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showCard, setShowCard] = useState(true);
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -47,14 +48,14 @@ export default function ThankYouCard({ data, onClose }: ThankYouCardProps) {
   };
 
   useEffect(() => {
-    const generateImage = async () => {
-      if (!cardRef.current) return;
+    if (!cardRef.current || imageDataUrl) return;
 
+    const generateImage = async () => {
       setIsLoading(true);
       setErrorMessage(null);
 
       try {
-        const images = cardRef.current.querySelectorAll('img');
+        const images = cardRef.current!.querySelectorAll('img');
         await Promise.all(Array.from(images).map(img => {
           if (img.complete) return Promise.resolve();
           return new Promise((resolve) => {
@@ -68,7 +69,7 @@ export default function ThankYouCard({ data, onClose }: ThankYouCardProps) {
 
         await new Promise(resolve => requestAnimationFrame(resolve));
 
-        const canvas = await html2canvas(cardRef.current, {
+        const canvas = await html2canvas(cardRef.current!, {
           backgroundColor: "#ffffff",
           scale: 2,
           useCORS: true,
@@ -76,8 +77,8 @@ export default function ThankYouCard({ data, onClose }: ThankYouCardProps) {
           allowTaint: true,
           scrollX: 0,
           scrollY: 0,
-          windowWidth: cardRef.current.scrollWidth,
-          windowHeight: cardRef.current.scrollHeight,
+          windowWidth: cardRef.current!.scrollWidth,
+          windowHeight: cardRef.current!.scrollHeight,
           onclone: (clonedDoc) => {
             const clonedCard = clonedDoc.body.querySelector('[data-card-ref]') as HTMLElement | null;
             if (clonedCard) {
@@ -89,6 +90,7 @@ export default function ThankYouCard({ data, onClose }: ThankYouCardProps) {
 
         const dataUrl = canvas.toDataURL("image/png");
         setImageDataUrl(dataUrl);
+        setShowCard(false);
       } catch (error) {
         console.error("Image capture failed:", error);
         setErrorMessage("图片生成失败，请截图保存");
@@ -97,8 +99,12 @@ export default function ThankYouCard({ data, onClose }: ThankYouCardProps) {
       }
     };
 
-    generateImage();
-  }, []);
+    const timer = setTimeout(() => {
+      generateImage();
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [cardRef, imageDataUrl]);
 
   const handleClose = () => {
     onClose();
@@ -118,15 +124,17 @@ export default function ThankYouCard({ data, onClose }: ThankYouCardProps) {
 
       {/* 内容区域 */}
       <div className="relative z-10 flex flex-col items-center p-4">
-        {/* 加载状态 */}
+        {/* 加载状态覆盖层 */}
         {isLoading && (
-          <div className="text-white text-lg">
-            正在生成卡片...
+          <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10">
+            <div className="text-white text-lg">
+              正在生成卡片...
+            </div>
           </div>
         )}
 
         {/* 生成成功 - 显示图片 */}
-        {imageDataUrl && !isLoading && (
+        {imageDataUrl && !showCard && (
           <div className="flex flex-col items-center">
             <img
               src={imageDataUrl}
@@ -145,10 +153,9 @@ export default function ThankYouCard({ data, onClose }: ThankYouCardProps) {
           </div>
         )}
 
-        {/* 生成失败 - 显示原卡片 */}
-        {!imageDataUrl && !isLoading && errorMessage && (
+        {/* 卡片本体（用于截图） */}
+        {showCard && (
           <div className="flex flex-col items-center">
-            {/* 可截图的卡片本体 */}
             <div
               ref={cardRef}
               data-card-ref="true"
@@ -252,21 +259,21 @@ export default function ThankYouCard({ data, onClose }: ThankYouCardProps) {
             </div>
 
             {/* 错误提示 */}
-            <div className="mt-4 text-red-300 text-sm">
-              {errorMessage}
-            </div>
+            {errorMessage && (
+              <div className="mt-4 text-red-300 text-sm">
+                {errorMessage}
+              </div>
+            )}
           </div>
         )}
 
         {/* 关闭按钮 */}
-        {!isLoading && (
-          <button
-            onClick={handleClose}
-            className="mt-6 px-8 py-2.5 bg-white/80 text-gray-600 text-sm rounded-full hover:bg-white transition-colors"
-          >
-            关闭
-          </button>
-        )}
+        <button
+          onClick={handleClose}
+          className="mt-6 px-8 py-2.5 bg-white/80 text-gray-600 text-sm rounded-full hover:bg-white transition-colors"
+        >
+          关闭
+        </button>
       </div>
     </div>
   );
