@@ -13,8 +13,18 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "生日粉丝祝福墙 | Birthday Wishes",
-  description: "🌊 一个温馨的生日粉丝祝福墙，收集来自四面八方的美好祝愿 💙",
+  title: "你的大朋友小朋友",
+  description: "🌊 一个温馨的祝福墙，收集来自四面八方的美好祝愿 💙",
+  openGraph: {
+    title: "你的大朋友小朋友",
+    description: "🌊 一个温馨的祝福墙，收集来自四面八方的美好祝愿 💙",
+    type: "website",
+  },
+  twitter: {
+    title: "你的大朋友小朋友",
+    description: "🌊 一个温馨的祝福墙，收集来自四面八方的美好祝愿 💙",
+    card: "summary",
+  },
 };
 
 export const viewport = {
