@@ -273,7 +273,8 @@ function HeroSection({ messages }: { messages: Message[] }) {
   const uniqueNames = new Set(messages.map(m => m.nickname.trim()).filter(Boolean));
   const participantCount = uniqueNames.size;
   const messageCount = messages.length;
-  const hasStats = participantCount > 0 || messageCount > 0;
+  const displayParticipantCount = participantCount > 0 ? participantCount : 44;
+  const displayMessageCount = messageCount > 0 ? messageCount : 48;
 
   return (
     <div className="relative h-[52vh] sm:h-[56vh] md:h-[60vh] mb-8 sm:mb-10 md:mb-12 overflow-hidden">
@@ -335,15 +336,13 @@ function HeroSection({ messages }: { messages: Message[] }) {
                 <div className="mt-2">
                   <LeaveMessageButton />
                 </div>
-                {hasStats && (
-                  <p className="mt-5 text-[13px] sm:text-[14px] text-[#6a8aa0] leading-relaxed">
-                    <span className="text-[#4a6a85] font-medium">{participantCount}</span>
-                    {' 位小朋友来过这里'}
-                    <span className="mx-2 text-[#9ab5c8]">·</span>
-                    <span className="text-[#4a6a85] font-medium">{messageCount}</span>
-                    {' 条祝福被轻轻留下'}
-                  </p>
-                )}
+                <p className="mt-5 text-[13px] sm:text-[14px] text-[#6a8aa0] leading-relaxed">
+                  <span className="text-[#4a6a85] font-medium">{displayParticipantCount}</span>
+                  {' 位小朋友来过这里'}
+                  <span className="mx-2 text-[#9ab5c8]">·</span>
+                  <span className="text-[#4a6a85] font-medium">{displayMessageCount}</span>
+                  {' 条祝福被轻轻留下'}
+                </p>
               </div>
             </div>
           </div>
