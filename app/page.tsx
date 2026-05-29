@@ -3,6 +3,8 @@
 import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import AmbientBubble from "@/components/AmbientBubble";
+import MemoryEcho from "@/components/MemoryEcho";
 
 interface Message {
   id: number;
@@ -267,7 +269,12 @@ function LeaveMessageButton() {
   );
 }
 
-function HeroSection() {
+function HeroSection({ messages }: { messages: Message[] }) {
+  const uniqueNames = new Set(messages.map(m => m.nickname.trim()).filter(Boolean));
+  const participantCount = uniqueNames.size;
+  const messageCount = messages.length;
+  const hasStats = participantCount > 0 || messageCount > 0;
+
   return (
     <div className="relative h-[52vh] sm:h-[56vh] md:h-[60vh] mb-8 sm:mb-10 md:mb-12 overflow-hidden">
       {/* 背景渐变 */}
@@ -279,11 +286,11 @@ function HeroSection() {
           src="/banner4.jpg"
           alt="演出氛围"
           fill
-          className="object-cover saturate-[0.95] brightness-[0.98] scale-105 opacity-92"
+          className="object-cover saturate-[0.95] brightness-[0.98] scale-105 opacity-95"
           unoptimized
         />
         {/* 覆盖层 - 保护文字可读性 */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[rgba(245,249,252,0.45)] via-[rgba(245,249,252,0.35)] to-[rgba(238,244,248,0.28)]" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[rgba(245,249,252,0.35)] via-[rgba(245,249,252,0.25)] to-[rgba(238,244,248,0.18)]" />
         {/* 左侧加强遮罩 */}
         <div className="absolute inset-0 bg-gradient-to-r from-[rgba(245,249,252,0.18)] via-transparent to-transparent" />
         {/* 底部渐变 */}
@@ -313,21 +320,30 @@ function HeroSection() {
           <div className="w-full md:w-5/12 lg:w-1/2 flex flex-col justify-center py-8 md:py-0">
             <div className="max-w-md lg:max-w-lg animate-fade-in-up px-2 sm:px-4">
               {/* 文字区域背景遮罩 */}
-              <div className="backdrop-blur-sm bg-[rgba(245,249,252,0.45)] rounded-2xl p-6 sm:p-8 border border-white/30 shadow-md">
-                <div className="w-12 h-px bg-gradient-to-r from-transparent via-[#7a9cb8] to-transparent mb-5" />
-                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-[2.75rem] font-medium text-[#253545] tracking-[0.06em] mb-4 leading-[1.4] drop-shadow-sm">
+              <div className="backdrop-blur-md bg-[rgba(245,249,252,0.75)] rounded-2xl p-6 sm:p-8 pb-8 sm:pb-10 border border-white/50 shadow-lg">
+                <div className="w-12 h-px bg-gradient-to-r from-transparent via-[#6a8aa0] to-transparent mb-5" />
+                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-[2.75rem] font-medium text-[#1a2a3a] tracking-[0.06em] mb-4 leading-[1.4] drop-shadow-[0_2px_4px_rgba(0,0,0,0.08)]">
                   大朋友小朋友
                 </h1>
-                <div className="w-12 h-px bg-gradient-to-r from-transparent via-[#7a9cb8] to-transparent mb-5" />
-                <p className="text-sm sm:text-base md:text-lg font-normal text-[#4a6a85] tracking-wide mb-5 leading-relaxed drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">
+                <div className="w-12 h-px bg-gradient-to-r from-transparent via-[#6a8aa0] to-transparent mb-5" />
+                <p className="text-sm sm:text-base md:text-lg font-normal text-[#3a5a75] tracking-wide mb-5 leading-relaxed drop-shadow-[0_1px_2px_rgba(255,255,255,0.9)]">
                   把想念放在这里，让海风轻轻送给你
                 </p>
-                <div className="text-xs sm:text-sm font-light text-[#5a7a94] tracking-[0.1em] mb-8 leading-loose drop-shadow-[0_1px_1px_rgba(255,255,255,0.6)]">
+                <div className="text-xs sm:text-sm font-light text-[#4a6a85] tracking-[0.1em] mb-8 leading-loose drop-shadow-[0_1px_2px_rgba(255,255,255,0.8)]">
                   未来的路还很长<br />我们都要加油
                 </div>
                 <div className="mt-2">
                   <LeaveMessageButton />
                 </div>
+                {hasStats && (
+                  <p className="mt-5 text-[13px] sm:text-[14px] text-[#6a8aa0] leading-relaxed">
+                    <span className="text-[#4a6a85] font-medium">{participantCount}</span>
+                    {' 位小朋友来过这里'}
+                    <span className="mx-2 text-[#9ab5c8]">·</span>
+                    <span className="text-[#4a6a85] font-medium">{messageCount}</span>
+                    {' 条祝福被轻轻留下'}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -456,6 +472,9 @@ export default function Home() {
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [displayCount, setDisplayCount] = useState(MESSAGES_PER_PAGE);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  // 氛围组件状态联动
+  const [isAmbientBubbleVisible, setIsAmbientBubbleVisible] = useState(false);
+  const [isMemoryEchoVisible, setIsMemoryEchoVisible] = useState(false);
 
   useEffect(() => {
     const fetchMessages = async () => {
@@ -554,7 +573,7 @@ export default function Home() {
       />
 
       <div className="relative z-10">
-        <HeroSection />
+        <HeroSection messages={messages} />
         
         <FloatingMessages messages={messages} />
 
@@ -602,6 +621,17 @@ export default function Home() {
       </div>
 
       <BackToTopButton />
+      
+      {/* 氛围气泡和记忆回响联动 */}
+      <AmbientBubble 
+        isMemoryEchoVisible={isMemoryEchoVisible}
+        onVisibilityChange={setIsAmbientBubbleVisible}
+      />
+      <MemoryEcho 
+        messages={messages}
+        isAmbientBubbleVisible={isAmbientBubbleVisible}
+        onVisibilityChange={setIsMemoryEchoVisible}
+      />
 
       {selectedMessage && (
         <MessageDetailModal 
