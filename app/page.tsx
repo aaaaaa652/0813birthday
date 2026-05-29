@@ -607,7 +607,14 @@ export default function Home() {
         <footer className="bg-white/50 border-t border-gray-100 py-6 sm:py-8 mt-8 sm:mt-12">
           <div className="container mx-auto px-4 sm:px-6">
             <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-400">
-              <span>ICP备案号：待填写</span>
+              <a
+                href="https://beian.miit.gov.cn/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-gray-500 transition-colors"
+              >
+                ICP备案号：滇ICP备2026010117号
+              </a>
               <span className="hidden sm:inline">｜</span>
               <span>Version {process.env.NEXT_PUBLIC_APP_VERSION}</span>
               <span className="hidden sm:inline">｜</span>
