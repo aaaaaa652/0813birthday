@@ -6,6 +6,9 @@ const DATA_DIR = path.join(process.cwd(), 'data');
 const MESSAGES_FILE = path.join(DATA_DIR, 'messages.json');
 const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
 
+// 导入题库
+import { quizQuestions } from '@/data/quiz';
+
 // IP限流配置
 const RATE_LIMIT_WINDOW = 30000; // 30秒
 const RATE_LIMIT_MAX_REQUESTS = 1; // 最多1次
@@ -152,6 +155,8 @@ export async function POST(request: Request) {
     const nickname = formData.get('nickname') as string;
     const content = formData.get('content') as string;
     const imageFile = formData.get('image') as File | null;
+    const quizId = formData.get('quizId') as string;
+    const quizAnswer = formData.get('quizAnswer') as string;
     
     console.log('Extracted values:');
     console.log('Nickname:', nickname);
@@ -160,6 +165,32 @@ export async function POST(request: Request) {
     console.log('Image size:', imageFile?.size);
     console.log('Image name:', imageFile?.name);
     console.log('Image type:', imageFile?.type);
+    console.log('Quiz ID:', quizId);
+    console.log('Quiz Answer:', quizAnswer);
+    
+    // 问答验证（可选，但如果提供了验证信息则必须验证通过）
+    if (quizId && quizAnswer) {
+      const question = quizQuestions.find(q => q.id === parseInt(quizId));
+      if (!question) {
+        console.log('结果: ❌ 无效的题目ID');
+        console.log('===============================');
+        return NextResponse.json({ error: '验证失败' }, { status: 400 });
+      }
+      
+      // 验证答案
+      const cleanedAnswer = (quizAnswer || '').trim().toLowerCase().replace(/《|》/g, '');
+      const isAnswerCorrect = question.answers.some(
+        correctAnswer => correctAnswer.toLowerCase().replace(/《|》/g, '') === cleanedAnswer
+      );
+      
+      if (!isAnswerCorrect) {
+        console.log('结果: ❌ 答案验证失败');
+        console.log('===============================');
+        return NextResponse.json({ error: '验证失败' }, { status: 400 });
+      }
+      
+      console.log('问答验证: 通过');
+    }
     
     if (!nickname?.trim()) {
       return NextResponse.json({ error: '昵称不能为空' }, { status: 400 });

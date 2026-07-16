@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import AmbientBubble from "@/components/AmbientBubble";
 import MemoryEcho from "@/components/MemoryEcho";
+import QuizModal from "@/components/QuizModal";
 
 interface Message {
   id: number;
@@ -16,6 +17,19 @@ interface Message {
   createdAt: string;
   isPinned: boolean;
   pinnedAt: string | null;
+}
+
+interface Announcement {
+  id: number;
+  title: string;
+  content: string;
+  position: 'homepage' | 'message' | 'popup';
+  status: 'draft' | 'published' | 'disabled';
+  isPinned: boolean;
+  startTime: string | null;
+  endTime: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // 柔和的纯色头像颜色方案
@@ -258,18 +272,18 @@ function BreathingOrb({ style, color }: { style: React.CSSProperties; color: str
   return <div className="breathing-orb" style={{ ...style, background: color }} />;
 }
 
-function LeaveMessageButton() {
+function LeaveMessageButton({ onClick }: { onClick: () => void }) {
   return (
-    <Link
-      href="/message"
+    <button
+      onClick={onClick}
       className="btn-primary px-8 py-3 rounded-full text-white text-sm tracking-wide relative z-20"
     >
       我想说说
-    </Link>
+    </button>
   );
 }
 
-function HeroSection({ messages }: { messages: Message[] }) {
+function HeroSection({ messages, onLeaveMessageClick }: { messages: Message[]; onLeaveMessageClick: () => void }) {
   const uniqueNames = new Set(messages.map(m => m.nickname.trim()).filter(Boolean));
   const participantCount = uniqueNames.size;
   const messageCount = messages.length;
@@ -334,7 +348,7 @@ function HeroSection({ messages }: { messages: Message[] }) {
                   未来的路还很长<br />我们都要加油
                 </div>
                 <div className="mt-2">
-                  <LeaveMessageButton />
+                  <LeaveMessageButton onClick={onLeaveMessageClick} />
                 </div>
                 <p className="mt-5 text-[13px] sm:text-[14px] text-[#6a8aa0] leading-relaxed">
                   <span className="text-[#4a6a85] font-medium">{displayParticipantCount}</span>
@@ -350,6 +364,59 @@ function HeroSection({ messages }: { messages: Message[] }) {
       </div>
 
       <div className="absolute bottom-0 left-0 right-0 h-16 sm:h-20 bg-gradient-to-t from-[#f5f9fc] to-transparent" />
+    </div>
+  );
+}
+
+function AnnouncementBanner({ announcement }: { announcement: Announcement }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const contentLength = announcement.content.length;
+  const shouldTruncate = contentLength > 100;
+  const displayContent = shouldTruncate && !isExpanded 
+    ? announcement.content.substring(0, 100) + '...' 
+    : announcement.content;
+
+  return (
+    <div className="container mx-auto px-4 sm:px-6 mt-4 sm:mt-6 mb-4 sm:mb-6">
+      <div className="bg-white/60 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-[rgba(168,197,217,0.3)] shadow-sm">
+        <div className="flex items-start gap-3 sm:gap-4">
+          <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-[#7faacc] to-[#a8c5d9] flex items-center justify-center">
+            <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm sm:text-base font-medium text-[#253040] mb-1.5 sm:mb-2">
+              {announcement.title}
+            </h3>
+            <p className="text-xs sm:text-sm text-[#5a7a94] leading-relaxed whitespace-pre-wrap">
+              {displayContent}
+            </p>
+            {shouldTruncate && (
+              <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="mt-2 sm:mt-3 text-xs sm:text-sm text-[#7faacc] hover:text-[#5a8ab0] font-medium transition-colors flex items-center gap-1"
+              >
+                {isExpanded ? (
+                  <>
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                    </svg>
+                    收起
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                    查看详情
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -471,9 +538,36 @@ export default function Home() {
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [displayCount, setDisplayCount] = useState(MESSAGES_PER_PAGE);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  // 搜索和排序状态
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortMode, setSortMode] = useState<'normal' | 'shuffle' | 'reverse'>('normal');
   // 氛围组件状态联动
   const [isAmbientBubbleVisible, setIsAmbientBubbleVisible] = useState(false);
   const [isMemoryEchoVisible, setIsMemoryEchoVisible] = useState(false);
+  // 问答验证弹窗状态
+  const [isQuizModalOpen, setIsQuizModalOpen] = useState(false);
+  // 公告状态
+  const [announcement, setAnnouncement] = useState<Announcement | null>(null);
+
+  // 点击"我想说说"按钮
+  const handleLeaveMessageClick = () => {
+    // 检查是否已验证通过（本次会话）
+    const isVerified = sessionStorage.getItem('quizVerified');
+    if (isVerified) {
+      // 已验证，直接跳转
+      window.location.href = '/message';
+    } else {
+      // 未验证，显示弹窗
+      setIsQuizModalOpen(true);
+    }
+  };
+
+  // 问答验证成功
+  const handleQuizSuccess = () => {
+    setIsQuizModalOpen(false);
+    // 跳转留言页
+    window.location.href = '/message';
+  };
 
   useEffect(() => {
     const fetchMessages = async () => {
@@ -487,8 +581,6 @@ export default function Home() {
         
         const data = await res.json();
         console.log('Fetched messages:', data.length);
-        // API 已经按置顶状态排序，直接使用返回的数据
-        // 排序规则：置顶优先，置顶按时间倒序，普通留言按时间倒序
         setMessages(data);
       } catch (error) {
         console.error('Failed to fetch messages:', error);
@@ -498,7 +590,28 @@ export default function Home() {
       }
     };
     
+    const fetchAnnouncement = async () => {
+      try {
+        const res = await fetch('/api/announcements/active', {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-store' },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.announcements && data.announcements.length > 0) {
+            setAnnouncement(data.announcements[0]);
+          } else {
+            setAnnouncement(null);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch announcement:', error);
+        setAnnouncement(null);
+      }
+    };
+    
     fetchMessages();
+    fetchAnnouncement();
     
     const interval = setInterval(fetchMessages, 5000);
     return () => clearInterval(interval);
@@ -515,11 +628,66 @@ export default function Home() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedMessage]);
 
-  const displayedMessages = messages.slice(0, displayCount);
-  const hasMore = displayCount < messages.length;
+  // 搜索过滤
+  const filteredMessages = messages.filter(msg => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      msg.nickname.toLowerCase().includes(query) ||
+      msg.content.toLowerCase().includes(query)
+    );
+  });
+
+  // 排序处理
+  const getSortedMessages = () => {
+    // 分离置顶和非置顶留言
+    const pinnedMessages = filteredMessages.filter(m => m.isPinned);
+    const normalMessages = filteredMessages.filter(m => !m.isPinned);
+    
+    let sortedNormalMessages = [...normalMessages];
+    
+    switch (sortMode) {
+      case 'reverse':
+        // 按时间倒序
+        sortedNormalMessages = [...normalMessages].reverse();
+        break;
+      case 'shuffle':
+        // 随机打乱
+        sortedNormalMessages = [...normalMessages].sort(() => Math.random() - 0.5);
+        break;
+      default:
+        // 正序（保持原有顺序）
+        break;
+    }
+    
+    // 置顶留言内部按置顶时间倒序排列
+    const sortedPinnedMessages = [...pinnedMessages].sort((a, b) => {
+      const pinnedAtA = a.pinnedAt ? new Date(a.pinnedAt).getTime() : 0;
+      const pinnedAtB = b.pinnedAt ? new Date(b.pinnedAt).getTime() : 0;
+      return pinnedAtB - pinnedAtA;
+    });
+    
+    // 置顶留言始终优先
+    return [...sortedPinnedMessages, ...sortedNormalMessages];
+  };
+
+  const sortedMessages = getSortedMessages();
+  const displayedMessages = sortedMessages.slice(0, displayCount);
+  const hasMore = displayCount < sortedMessages.length;
 
   const handleLoadMore = () => {
     setDisplayCount(prev => prev + MESSAGES_PER_PAGE);
+  };
+
+  // 切换排序模式
+  const toggleSort = (mode: 'shuffle' | 'reverse') => {
+    if (sortMode === mode) {
+      // 再次点击恢复正序
+      setSortMode('normal');
+    } else {
+      // 切换到对应模式
+      setSortMode(mode);
+    }
   };
 
   if (loading) {
@@ -572,9 +740,88 @@ export default function Home() {
       />
 
       <div className="relative z-10">
-        <HeroSection messages={messages} />
+        <HeroSection messages={messages} onLeaveMessageClick={handleLeaveMessageClick} />
+        
+        {announcement && (
+          <AnnouncementBanner announcement={announcement} />
+        )}
         
         <FloatingMessages messages={messages} />
+
+        {/* 搜索和排序栏 */}
+        <div className="container mx-auto px-3 sm:px-4 mb-6">
+          <div className="max-w-4xl mx-auto">
+            {/* 搜索框 */}
+            <div className="relative mb-3 sm:mb-4">
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9ab5c8]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setDisplayCount(MESSAGES_PER_PAGE); // 搜索时重置分页
+                }}
+                placeholder="搜索昵称或留言内容"
+                className="w-full pl-10 pr-4 py-2.5 bg-white/70 backdrop-blur-sm rounded-full border border-white/50 text-sm text-[#4a6a85] placeholder-[#9ab5c8] focus:outline-none focus:ring-2 focus:ring-[#7faacc]/30 focus:bg-white/90 transition-all shadow-sm"
+              />
+            </div>
+            
+            {/* 排序按钮 */}
+            <div className="flex items-center justify-center gap-2 sm:gap-3">
+              <button
+                onClick={() => toggleSort('shuffle')}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-1.5 ${
+                  sortMode === 'shuffle'
+                    ? 'bg-[#7faacc] text-white shadow-md'
+                    : 'bg-white/70 text-[#5a7a94] hover:bg-white/90 border border-white/50'
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                乱序
+              </button>
+              <button
+                onClick={() => toggleSort('reverse')}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-1.5 ${
+                  sortMode === 'reverse'
+                    ? 'bg-[#7faacc] text-white shadow-md'
+                    : 'bg-white/70 text-[#5a7a94] hover:bg-white/90 border border-white/50'
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 16h13M9 8h6M9 16h6" />
+                </svg>
+                倒序
+              </button>
+            </div>
+            
+            {/* 搜索结果提示 */}
+            {searchQuery && (
+              <div className="text-center mt-3">
+                <span className="text-xs text-[#9ab5c8]">
+                  找到 <span className="text-[#5a7a94] font-medium">{filteredMessages.length}</span> 条相关留言
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 搜索结果为空提示 */}
+        {searchQuery && filteredMessages.length === 0 && (
+          <div className="container mx-auto px-3 sm:px-4 mb-8">
+            <div className="text-center py-12">
+              <div className="w-16 h-16 rounded-full bg-[rgba(154,181,200,0.1)] flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-[#9ab5c8]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <p className="text-sm text-[#5a7a94]">没有找到相关留言</p>
+            </div>
+          </div>
+        )}
 
         {/* 瀑布流布局 */}
         <div className="container mx-auto px-3 sm:px-4 pb-8 sm:pb-12">
@@ -596,7 +843,7 @@ export default function Home() {
                 onClick={handleLoadMore}
                 className="px-8 py-3 rounded-full bg-white/80 text-[#5a7a94] text-sm font-medium hover:bg-white hover:shadow-md transition-all border border-gray-100"
               >
-                查看更多 ({messages.length - displayCount} 条)
+                查看更多 ({sortedMessages.length - displayCount} 条)
               </button>
             </div>
           )}
@@ -653,6 +900,13 @@ export default function Home() {
           onClose={() => setPreviewImage(null)} 
         />
       )}
+
+      {/* 问答验证弹窗 */}
+      <QuizModal
+        isOpen={isQuizModalOpen}
+        onClose={() => setIsQuizModalOpen(false)}
+        onSuccess={handleQuizSuccess}
+      />
     </div>
   );
 }

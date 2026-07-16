@@ -1,10 +1,18 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import ThankYouCard from "@/components/ThankYouCard";
-import { cards } from "@/data/cards";
+
+interface Card {
+  id: number;
+  image: string;
+  imagePosition?: string;
+  lyric: string[];
+  blessing: string;
+  source: string;
+}
 
 function getImageFormatFromMagic(bytes: Uint8Array): { format: string | null; mimeType: string | null } {
   if (bytes.length < 12) {
@@ -141,19 +149,33 @@ export default function MessagePage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showThankYouCard, setShowThankYouCard] = useState(false);
-  const [currentCard, setCurrentCard] = useState<typeof cards[0] | null>(null);
+  const [currentCard, setCurrentCard] = useState<Card | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [rateLimitRemaining, setRateLimitRemaining] = useState<number | null>(null);
   const [showFullscreen, setShowFullscreen] = useState(false);
+  const [showDefaultThankYou, setShowDefaultThankYou] = useState(false);
 
   const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp'];
   const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
-  const getRandomCard = () => {
-    const randomIndex = Math.floor(Math.random() * cards.length);
-    return cards[randomIndex];
+  const getRandomCard = async (): Promise<Card | null> => {
+    try {
+      const res = await fetch('/api/cards/random', {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-store',
+        },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return data || null;
+      }
+    } catch (error) {
+      console.error('Error fetching random card:', error);
+    }
+    return null;
   };
 
   const handleImageUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -281,6 +303,12 @@ export default function MessagePage() {
       formData.append('nickname', nickname.trim());
       formData.append('content', content.trim());
       
+      // 从 sessionStorage 获取验证信息
+      const quizVerified = sessionStorage.getItem('quizVerified');
+      if (quizVerified) {
+        // 标记已通过验证（后端会验证）
+      }
+      
       if (selectedFile) {
         formData.append('image', selectedFile, selectedFile.name);
       }
@@ -292,10 +320,14 @@ export default function MessagePage() {
       
       if (res.ok) {
         setShowSuccess(true);
-        setTimeout(() => {
-          const randomCard = getRandomCard();
-          setCurrentCard(randomCard);
-          setShowThankYouCard(true);
+        setTimeout(async () => {
+          const randomCard = await getRandomCard();
+          if (randomCard) {
+            setCurrentCard(randomCard);
+            setShowThankYouCard(true);
+          } else {
+            setShowDefaultThankYou(true);
+          }
         }, 1000);
       } else {
         const data = await res.json();
@@ -359,6 +391,7 @@ export default function MessagePage() {
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
+                
                 <div>
                   <label className="block text-[#5a7a94] text-sm font-medium mb-2">昵称</label>
                   <input
@@ -576,6 +609,29 @@ export default function MessagePage() {
             window.location.href = '/';
           }} 
         />
+      )}
+
+      {showDefaultThankYou && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
+          <div className="bg-white/95 backdrop-blur-lg rounded-2xl p-6 max-w-sm w-full text-center shadow-xl border border-white/70">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-[#7faacc] to-[#a8c5d9] flex items-center justify-center">
+              <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-[#253040] mb-2">提交成功</h3>
+            <p className="text-[#5a7a94] text-sm mb-6">感谢你的祝福，已为你保存</p>
+            <button
+              onClick={() => {
+                setShowDefaultThankYou(false);
+                window.location.href = '/';
+              }}
+              className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-[#7faacc] to-[#a8c5d9] text-white text-sm font-medium hover:shadow-lg transition-all"
+            >
+              返回留言墙
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

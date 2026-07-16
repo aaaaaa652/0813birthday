@@ -45,3 +45,6 @@ next-env.d.ts
 /uploads
 /public/uploads
 data/messages.json
+data/cards.json
+data/questions.json
+data/announcements.json
