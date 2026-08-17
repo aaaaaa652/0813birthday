@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { createAdminSession } from '@/lib/admin-session';
 
 // 防爆破配置
 const MAX_FAILED_ATTEMPTS = 5; // 最大失败次数
@@ -63,11 +64,12 @@ export async function POST(request: Request) {
     if (password === ADMIN_PASSWORD) {
       // 验证成功，清除该IP的失败记录
       ipFailedAttempts.delete(ip);
+      const sessionId = createAdminSession();
       console.log(`========== 登录成功日志 ==========`);
       console.log(`IP: ${ip}`);
       console.log(`状态: 登录成功`);
       console.log(`===================================`);
-      return NextResponse.json({ success: true });
+      return NextResponse.json({ success: true, sessionId });
     } else {
       // 密码错误，记录失败次数
       const currentRecord = record || { attempts: 0, lastAttempt: 0, banUntil: 0 };

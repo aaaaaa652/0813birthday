@@ -2,10 +2,9 @@
 
 import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import AmbientBubble from "@/components/AmbientBubble";
 import MemoryEcho from "@/components/MemoryEcho";
-import QuizModal from "@/components/QuizModal";
+import { MESSAGE_ADMIN_EMAIL, MESSAGE_CLOSED_NOTICE } from "@/lib/message-policy";
 
 interface Message {
   id: number;
@@ -278,8 +277,84 @@ function LeaveMessageButton({ onClick }: { onClick: () => void }) {
       onClick={onClick}
       className="btn-primary px-8 py-3 rounded-full text-white text-sm tracking-wide relative z-20"
     >
-      我想说说
+      我要说说
     </button>
+  );
+}
+
+function MessageClosedModal({ onClose }: { onClose: () => void }) {
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <button
+        type="button"
+        aria-label="关闭留言功能说明"
+        className="absolute inset-0 bg-black/35 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="message-closed-title"
+        className="relative w-full max-w-lg rounded-xl border border-white/70 bg-white p-5 shadow-2xl sm:p-7"
+      >
+        <div className="mb-5 flex items-start justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[#edf4f8] text-[#5a7a94]">
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v4m0 4h.01M10.3 3.9 2.6 17.2A2 2 0 0 0 4.3 20h15.4a2 2 0 0 0 1.7-2.8L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+              </svg>
+            </div>
+            <h2 id="message-closed-title" className="text-lg font-medium text-[#253040] sm:text-xl">
+              留言功能已关闭
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-[#7a8a9a] transition-colors hover:bg-gray-100"
+            title="关闭"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18 18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <p className="text-sm leading-7 text-[#4a5a6a] sm:text-[15px]">
+          {MESSAGE_CLOSED_NOTICE}
+        </p>
+
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm text-gray-600 transition-colors hover:bg-gray-50"
+          >
+            我知道了
+          </button>
+          <a
+            href={`mailto:${MESSAGE_ADMIN_EMAIL}`}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#6f9fbe] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#5f8fac]"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="m3 6 9 6 9-6M5 19h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2Z" />
+            </svg>
+            发送邮件
+          </a>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -544,29 +619,12 @@ export default function Home() {
   // 氛围组件状态联动
   const [isAmbientBubbleVisible, setIsAmbientBubbleVisible] = useState(false);
   const [isMemoryEchoVisible, setIsMemoryEchoVisible] = useState(false);
-  // 问答验证弹窗状态
-  const [isQuizModalOpen, setIsQuizModalOpen] = useState(false);
+  const [isMessageClosedModalOpen, setIsMessageClosedModalOpen] = useState(false);
   // 公告状态
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
 
-  // 点击"我想说说"按钮
   const handleLeaveMessageClick = () => {
-    // 检查是否已验证通过（本次会话）
-    const isVerified = sessionStorage.getItem('quizVerified');
-    if (isVerified) {
-      // 已验证，直接跳转
-      window.location.href = '/message';
-    } else {
-      // 未验证，显示弹窗
-      setIsQuizModalOpen(true);
-    }
-  };
-
-  // 问答验证成功
-  const handleQuizSuccess = () => {
-    setIsQuizModalOpen(false);
-    // 跳转留言页
-    window.location.href = '/message';
+    setIsMessageClosedModalOpen(true);
   };
 
   useEffect(() => {
@@ -901,12 +959,9 @@ export default function Home() {
         />
       )}
 
-      {/* 问答验证弹窗 */}
-      <QuizModal
-        isOpen={isQuizModalOpen}
-        onClose={() => setIsQuizModalOpen(false)}
-        onSuccess={handleQuizSuccess}
-      />
+      {isMessageClosedModalOpen && (
+        <MessageClosedModal onClose={() => setIsMessageClosedModalOpen(false)} />
+      )}
     </div>
   );
 }

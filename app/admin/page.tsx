@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import MessagePublishModal, { type PublishedMessage } from "@/components/admin/MessagePublishModal";
 
 interface Message {
   id: number;
@@ -76,8 +76,7 @@ export default function AdminPage() {
   const [loginLoading, setLoginLoading] = useState(false);
   const [banRemainingMinutes, setBanRemainingMinutes] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('messages');
-  
-  const router = useRouter();
+  const [showPublishModal, setShowPublishModal] = useState(false);
 
   useEffect(() => {
     const sessionId = sessionStorage.getItem('admin_session');
@@ -126,8 +125,10 @@ export default function AdminPage() {
         const data = await res.json();
         if (data.valid) {
           setAuthenticated(true);
+          return;
         }
       }
+      sessionStorage.removeItem('admin_session');
     } catch {
       sessionStorage.removeItem('admin_session');
     }
@@ -157,9 +158,8 @@ export default function AdminPage() {
       
       if (res.ok) {
         const data = await res.json();
-        if (data.success) {
-          const sessionId = Math.random().toString(36).substring(2, 15);
-          sessionStorage.setItem('admin_session', sessionId);
+        if (data.success && data.sessionId) {
+          sessionStorage.setItem('admin_session', data.sessionId);
           setAuthenticated(true);
         }
       } else {
@@ -182,6 +182,18 @@ export default function AdminPage() {
     sessionStorage.removeItem('admin_session');
     setAuthenticated(false);
     setPassword('');
+  };
+
+  const handleSessionExpired = () => {
+    sessionStorage.removeItem('admin_session');
+    setShowPublishModal(false);
+    setAuthenticated(false);
+    setPassword('');
+  };
+
+  const handleMessagePublished = (message: PublishedMessage) => {
+    setMessages(prev => [message, ...prev]);
+    setToast({ type: "success", message: "留言发布成功，已立即生效" });
   };
 
   const handleDelete = async (id: number) => {
@@ -218,9 +230,13 @@ export default function AdminPage() {
 
   const handleTogglePin = async (id: number, currentPinned: boolean) => {
     try {
+      const sessionId = sessionStorage.getItem('admin_session');
       const res = await fetch('/api/messages', {
         method: "PUT",
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-session-id': sessionId || '',
+        },
         body: JSON.stringify({ id, isPinned: !currentPinned }),
       });
       
@@ -230,6 +246,9 @@ export default function AdminPage() {
         setToast({ type: "success", message: currentPinned ? "取消置顶成功" : "置顶成功" });
       } else {
         const data = await res.json();
+        if (res.status === 401) {
+          handleSessionExpired();
+        }
         setToast({ type: "error", message: data.error || "操作失败" });
       }
     } catch {
@@ -331,17 +350,29 @@ export default function AdminPage() {
       default:
         return (
           <>
-            <div className="relative max-w-md mb-4 sm:mb-6">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="搜索昵称或留言内容..."
-                className="w-full px-4 py-2.5 rounded-xl bg-white/60 border border-white/40 text-[#253040] placeholder-[#a0aec0] focus:outline-none focus:border-[#a8c5d9] focus:ring-1 focus:ring-[#a8c5d9] transition-all text-sm"
-              />
-              <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#a0aec0]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+            <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
+              <div className="relative w-full max-w-md">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="搜索昵称或留言内容..."
+                  className="w-full px-4 py-2.5 rounded-xl bg-white/60 border border-white/40 text-[#253040] placeholder-[#a0aec0] focus:outline-none focus:border-[#a8c5d9] focus:ring-1 focus:ring-[#a8c5d9] transition-all text-sm"
+                />
+                <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#a0aec0]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPublishModal(true)}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#6f9fbe] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#5f8fac] sm:w-auto"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v14M5 12h14" />
+                </svg>
+                发布留言
+              </button>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
@@ -485,6 +516,14 @@ export default function AdminPage() {
 
         {renderTabContent()}
       </div>
+
+      {showPublishModal && (
+        <MessagePublishModal
+          onClose={() => setShowPublishModal(false)}
+          onPublished={handleMessagePublished}
+          onSessionExpired={handleSessionExpired}
+        />
+      )}
     </div>
   );
 }

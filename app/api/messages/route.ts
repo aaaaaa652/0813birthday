@@ -1,6 +1,13 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { validateAdminSession } from '@/lib/admin-session';
+import {
+  MAX_MESSAGE_CONTENT_LENGTH,
+  MAX_MESSAGE_IMAGE_SIZE,
+  MAX_MESSAGE_NICKNAME_LENGTH,
+  MESSAGE_CLOSED_NOTICE,
+} from '@/lib/message-policy';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 const MESSAGES_FILE = path.join(DATA_DIR, 'messages.json');
@@ -8,13 +15,6 @@ const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
 
 // 导入题库
 import { quizQuestions } from '@/data/quiz';
-
-// IP限流配置
-const RATE_LIMIT_WINDOW = 30000; // 30秒
-const RATE_LIMIT_MAX_REQUESTS = 1; // 最多1次
-
-// 存储IP访问记录 { ip: lastRequestTime }
-const ipAccessRecords = new Map<string, number>();
 
 interface Message {
   id: number;
@@ -111,32 +111,19 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const sessionId = request.headers.get('x-session-id');
+  if (!sessionId) {
+    return NextResponse.json({ error: MESSAGE_CLOSED_NOTICE }, { status: 403 });
+  }
+  if (!validateAdminSession(sessionId)) {
+    return NextResponse.json({ error: '管理员会话已过期，请重新登录' }, { status: 401 });
+  }
+
   try {
-    // 获取客户端IP
-    const clientIP = request.headers.get('x-forwarded-for') || 
-                     request.headers.get('x-real-ip') || 
-                     'unknown';
-    const ip = clientIP.split(',')[0]?.trim() || clientIP;
-    
     const now = Date.now();
     
-    console.log('========== 提交日志 ==========');
-    console.log('IP:', ip);
+    console.log('========== 管理员发布留言日志 ==========');
     console.log('提交时间:', new Date(now).toLocaleString('zh-CN'));
-    
-    // IP限流检查
-    const lastRequestTime = ipAccessRecords.get(ip);
-    if (lastRequestTime && now - lastRequestTime < RATE_LIMIT_WINDOW) {
-      const remainingSeconds = Math.ceil((RATE_LIMIT_WINDOW - (now - lastRequestTime)) / 1000);
-      console.log('是否被限流: 是 (剩余', remainingSeconds, '秒)');
-      console.log('===============================');
-      return NextResponse.json({ 
-        error: '留言太快啦，稍微休息一下再发送吧～',
-        remainingSeconds 
-      }, { status: 429 });
-    }
-    
-    console.log('是否被限流: 否');
     
     const formData = await request.formData();
     
@@ -144,7 +131,7 @@ export async function POST(request: Request) {
     
     // List all form data entries
     console.log('FormData entries:');
-    for (let [key, value] of formData.entries()) {
+    for (const [key, value] of formData.entries()) {
       if (value instanceof File) {
         console.log(`  ${key}: File - ${value.name}, ${value.size} bytes, ${value.type}`);
       } else {
@@ -157,6 +144,8 @@ export async function POST(request: Request) {
     const imageFile = formData.get('image') as File | null;
     const quizId = formData.get('quizId') as string;
     const quizAnswer = formData.get('quizAnswer') as string;
+    const normalizedNickname = nickname?.trim();
+    const normalizedContent = content?.trim();
     
     console.log('Extracted values:');
     console.log('Nickname:', nickname);
@@ -192,26 +181,32 @@ export async function POST(request: Request) {
       console.log('问答验证: 通过');
     }
     
-    if (!nickname?.trim()) {
+    if (!normalizedNickname) {
       return NextResponse.json({ error: '昵称不能为空' }, { status: 400 });
     }
     
     // 检测昵称中是否包含 Emoji
-    if (containsEmoji(nickname)) {
+    if (containsEmoji(normalizedNickname)) {
       return NextResponse.json({ error: '昵称不能包含表情符号' }, { status: 400 });
     }
     
-    if (!content?.trim()) {
+    if (normalizedNickname.length > MAX_MESSAGE_NICKNAME_LENGTH) {
+      return NextResponse.json(
+        { error: `昵称不能超过 ${MAX_MESSAGE_NICKNAME_LENGTH} 个字符` },
+        { status: 400 },
+      );
+    }
+
+    if (!normalizedContent) {
       return NextResponse.json({ error: '留言内容不能为空' }, { status: 400 });
     }
     
-    // 检查内容是否为纯空格
-    if (!content.trim()) {
-      return NextResponse.json({ error: '留言内容不能为空' }, { status: 400 });
+    if (normalizedContent.length > MAX_MESSAGE_CONTENT_LENGTH) {
+      return NextResponse.json(
+        { error: `留言内容不能超过 ${MAX_MESSAGE_CONTENT_LENGTH} 个字` },
+        { status: 400 },
+      );
     }
-    
-    // 记录IP访问时间（验证通过后记录）
-    ipAccessRecords.set(ip, now);
     
     const messages = readMessages();
     const maxId = messages.length > 0 ? Math.max(...messages.map(m => m.id)) : 0;
@@ -222,6 +217,10 @@ export async function POST(request: Request) {
       const originalFileName = imageFile.name;
       const originalMimeType = imageFile.type || 'unknown';
       const fileSize = imageFile.size;
+
+      if (fileSize > MAX_MESSAGE_IMAGE_SIZE) {
+        return NextResponse.json({ error: '图片大小超过限制，请上传 5MB 以内的图片' }, { status: 400 });
+      }
       
       console.log('========== 图片上传日志 ==========');
       console.log('原始文件名:', originalFileName);
@@ -363,9 +362,9 @@ export async function POST(request: Request) {
     
     const newMessage: Message = {
       id: maxId + 1,
-      nickname,
-      content,
-      avatar: `https://api.dicebear.com/7.x/adventurer/svg?seed=${nickname}${Date.now()}`,
+      nickname: normalizedNickname,
+      content: normalizedContent,
+      avatar: `https://api.dicebear.com/7.x/adventurer/svg?seed=${normalizedNickname}${Date.now()}`,
       time: timeStr,
       image: imagePath,
       createdAt: currentDate.toISOString(),
@@ -385,6 +384,10 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
+  if (!validateAdminSession(request.headers.get('x-session-id'))) {
+    return NextResponse.json({ error: '管理员会话已过期，请重新登录' }, { status: 401 });
+  }
+
   try {
     const { id, isPinned } = await request.json();
     
